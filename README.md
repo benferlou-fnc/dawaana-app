@@ -230,3 +230,4 @@ supabase/migrations/       schéma SQL de la base de données
   (lister les annonces à vérifier, marquer "vérifié"/"rejeté")
 - Ajouter la version arabe (RTL) de cette application codée
 - Mettre en place une vraie modération (rôle admin, Supabase Auth)
+

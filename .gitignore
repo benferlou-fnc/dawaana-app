@@ -1,0 +1,8 @@
+node_modules
+.next
+.env.local
+.DS_Store
+npm-debug.log*
+*.zip
+_a_supprimer/
+scripts/

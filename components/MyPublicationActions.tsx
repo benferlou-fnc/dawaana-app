@@ -3,6 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { t } from "@/lib/i18n/dictionary";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 type Table = "listings" | "trips";
 
@@ -10,11 +13,14 @@ export function StatusActions({
   table,
   id,
   status,
+  locale,
 }: {
   table: Table;
   id: string;
   status: string;
+  locale: Locale;
 }) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -26,7 +32,7 @@ export function StatusActions({
     setBusy(false);
 
     if (error) {
-      setErrorMsg("Modification impossible. Réessayez dans un instant.");
+      setErrorMsg(dict.account.modifyError);
       console.error(error);
       return;
     }
@@ -47,7 +53,7 @@ export function StatusActions({
               onClick={() => setStatus("resolue")}
               className={`${btn} text-brand-green-dark border-brand-green`}
             >
-              C&apos;est résolu
+              {dict.account.resolved}
             </button>
           )}
           <button
@@ -56,12 +62,12 @@ export function StatusActions({
             onClick={() => setStatus(table === "listings" ? "retiree" : "retire")}
             className={btn}
           >
-            Retirer du site
+            {dict.account.removeFromSite}
           </button>
         </>
       ) : (
         <button type="button" disabled={busy} onClick={() => setStatus("active")} className={btn}>
-          Remettre en ligne
+          {dict.account.putBackOnline}
         </button>
       )}
       {errorMsg && <span className="text-xs text-brand-coral-dark">{errorMsg}</span>}
@@ -69,7 +75,8 @@ export function StatusActions({
   );
 }
 
-export function DeleteEverything({ count }: { count: number }) {
+export function DeleteEverything({ count, locale }: { count: number; locale: Locale }) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -85,7 +92,7 @@ export function DeleteEverything({ count }: { count: number }) {
 
     if (!user) {
       setBusy(false);
-      setErrorMsg("Session expirée — reconnectez-vous.");
+      setErrorMsg(dict.account.sessionExpired);
       return;
     }
 
@@ -96,7 +103,7 @@ export function DeleteEverything({ count }: { count: number }) {
     setBusy(false);
 
     if (a.error || b.error) {
-      setErrorMsg("La suppression a échoué. Réessayez dans un instant.");
+      setErrorMsg(dict.account.deleteFailed);
       console.error(a.error || b.error);
       return;
     }
@@ -114,15 +121,15 @@ export function DeleteEverything({ count }: { count: number }) {
           onClick={() => setConfirming(true)}
           className="self-start text-xs font-semibold text-brand-coral-dark underline underline-offset-2"
         >
-          Supprimer définitivement toutes mes publications
+          {dict.account.deleteEverythingButton}
         </button>
       ) : (
         <div className="flex flex-col gap-3 p-4 bg-brand-coral-tint rounded-xl">
           <p className="text-sm text-brand-ink leading-relaxed">
             {count === 1
-              ? "Votre publication sera définitivement effacée de la base."
-              : `Vos ${count} publications seront définitivement effacées de la base.`}{" "}
-            Cette action est irréversible.
+              ? dict.account.deleteConfirmSingle
+              : t(dict.account.deleteConfirmMultiple, { count })}{" "}
+            {dict.account.deleteConfirmIrreversible}
           </p>
           <div className="flex gap-2">
             <button
@@ -131,7 +138,7 @@ export function DeleteEverything({ count }: { count: number }) {
               disabled={busy}
               className="h-10 px-4 rounded-lg bg-brand-coral text-white text-xs font-semibold disabled:opacity-60"
             >
-              {busy ? "Suppression…" : "Oui, tout supprimer"}
+              {busy ? dict.account.deleting : dict.account.deleteConfirmYes}
             </button>
             <button
               type="button"
@@ -139,7 +146,7 @@ export function DeleteEverything({ count }: { count: number }) {
               disabled={busy}
               className="h-10 px-4 rounded-lg border border-brand-border text-xs font-semibold"
             >
-              Annuler
+              {dict.account.cancel}
             </button>
           </div>
           {errorMsg && <span className="text-xs text-brand-coral-dark">{errorMsg}</span>}

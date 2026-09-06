@@ -3,8 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export default function SignOutButton({ className }: { className?: string }) {
+export default function SignOutButton({
+  className,
+  locale,
+}: {
+  className?: string;
+  locale: Locale;
+}) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
 
@@ -17,7 +26,7 @@ export default function SignOutButton({ className }: { className?: string }) {
 
   return (
     <button type="button" onClick={signOut} disabled={busy} className={className}>
-      {busy ? "Déconnexion…" : "Se déconnecter"}
+      {busy ? dict.account.signingOut : dict.account.signOut}
     </button>
   );
 }

@@ -1,6 +1,10 @@
 import Link from "next/link";
+import LangSwitcher from "./LangSwitcher";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export default function Footer() {
+export default function Footer({ locale }: { locale: Locale }) {
+  const dict = getDictionary(locale);
   return (
     <footer className="border-t border-brand-border mt-16">
       <div className="max-w-6xl mx-auto px-6 py-10 flex flex-col gap-6">
@@ -17,29 +21,24 @@ export default function Footer() {
               />
               <span className="font-display font-bold text-base">Dawaana</span>
             </div>
-            <p className="text-xs text-brand-ink-faint leading-relaxed">
-              Projet solidaire à but non lucratif. Dawaana ne vend ni
-              n&apos;achète aucun médicament : la plateforme met en relation,
-              gratuitement, ceux qui cherchent et ceux qui peuvent aider.
-            </p>
+            <p className="text-xs text-brand-ink-faint leading-relaxed">{dict.footer.tagline}</p>
           </div>
 
           <nav className="flex flex-col gap-2.5 text-xs text-brand-ink-faint">
             <Link href="/annonces" className="hover:text-brand-coral-dark">
-              Parcourir les annonces
+              {dict.footer.browseListings}
             </Link>
             <Link href="/voyages" className="hover:text-brand-coral-dark">
-              Carnet de voyages
+              {dict.footer.travelJournal}
             </Link>
             <Link href="/confidentialite" className="hover:text-brand-coral-dark">
-              Vos données personnelles
+              {dict.footer.privacyData}
             </Link>
+            <LangSwitcher locale={locale} className="!h-auto !px-0 justify-start" />
           </nav>
         </div>
         <div className="pt-5 border-t border-brand-border text-xs text-brand-ink-faint">
-          Association en cours de constitution — mentions légales à compléter ·
-          Aucune transaction financière n&apos;est autorisée sur cette
-          plateforme.
+          {dict.footer.legalNotice}
         </div>
       </div>
     </footer>

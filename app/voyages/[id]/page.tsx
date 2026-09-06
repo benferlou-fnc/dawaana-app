@@ -9,10 +9,13 @@ import {
   type Trip,
   type Listing,
 } from "@/lib/types";
-import { formatDateFr, daysUntil } from "@/lib/relativeTime";
+import { formatDate, daysUntil } from "@/lib/relativeTime";
 import ListingCard from "@/components/ListingCard";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { PlaneIcon, CalendarIcon, MapPinIcon, ShieldIcon } from "@/components/icons";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary, t } from "@/lib/i18n/dictionary";
+import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -53,18 +56,23 @@ async function getMatchingRequests(wilaya: string): Promise<Listing[]> {
 }
 
 export default async function TripPage({ params }: { params: { id: string } }) {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
   const trip = await getTrip(params.id);
   if (!trip) notFound();
 
   const matches = await getMatchingRequests(trip.to_wilaya);
   const days = daysUntil(trip.travel_date);
-  const origin = [trip.from_city, trip.from_country].filter(Boolean).join(", ");
+  const origin = [trip.from_city, trip.from_country ? countryLabel(trip.from_country, locale) : null]
+    .filter(Boolean)
+    .join(", ");
+  const toWilaya = wilayaLabel(trip.to_wilaya, locale);
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-11 flex flex-col gap-10">
       <div>
         <Link href="/voyages" className="text-sm text-brand-ink-soft hover:text-brand-coral-dark">
-          ← Retour au carnet de voyages
+          {dict.voyageDetail.back}
         </Link>
       </div>
 
@@ -76,17 +84,21 @@ export default async function TripPage({ params }: { params: { id: string } }) {
             </span>
             <div>
               <h1 className="font-display font-extrabold text-[26px] leading-tight">
-                {origin} → {trip.to_wilaya}
+                {origin} → {toWilaya}
               </h1>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <span className="text-sm font-semibold">{trip.first_name}</span>
-                <VerifiedBadge verified={isVerified(trip)} />
+                <VerifiedBadge verified={isVerified(trip)} locale={locale} />
               </div>
             </div>
           </div>
           {days >= 0 && (
             <span className="inline-flex items-center h-8 px-3.5 rounded-full text-xs font-bold bg-brand-coral-tint text-brand-coral-dark">
-              {days === 0 ? "Arrive aujourd'hui" : days === 1 ? "Arrive demain" : `Dans ${days} jours`}
+              {days === 0
+                ? dict.voyageDetail.arrivesToday
+                : days === 1
+                  ? dict.voyageDetail.arrivesTomorrow
+                  : t(dict.voyageDetail.arrivesInDays, { n: days })}
             </span>
           )}
         </div>
@@ -94,18 +106,18 @@ export default async function TripPage({ params }: { params: { id: string } }) {
         <div className="flex flex-wrap gap-x-7 gap-y-2 text-sm text-brand-ink-soft">
           <span className="flex items-center gap-2">
             <CalendarIcon />
-            {formatDateFr(trip.travel_date)}
+            {formatDate(trip.travel_date, locale)}
           </span>
           <span className="flex items-center gap-2">
             <MapPinIcon />
-            Arrivée : {trip.to_wilaya}
+            {dict.voyageDetail.arrivalWilaya} {toWilaya}
           </span>
         </div>
 
         {trip.capacity_note && (
           <div className="rounded-2xl bg-brand-green-tint px-5 py-4">
             <div className="text-[13px] font-bold text-brand-green-dark mb-1">
-              Disponibilité annoncée
+              {dict.voyageDetail.availabilityTitle}
             </div>
             <p className="text-sm text-brand-green-dark/90 leading-relaxed">{trip.capacity_note}</p>
           </div>
@@ -117,31 +129,28 @@ export default async function TripPage({ params }: { params: { id: string } }) {
 
         <div className="flex gap-3 px-4 py-4 border-[1.5px] border-dashed border-brand-border rounded-xl">
           <ShieldIcon size={18} className="text-brand-ink-faint flex-none mt-0.5" />
-          <p className="text-xs text-brand-ink-faint leading-relaxed">
-            La mise en relation par messagerie n&apos;est pas encore ouverte. Un
-            médicament doit voyager étiqueté au nom de la personne qui le porte,
-            avec son ordonnance : ce trajet sert à savoir qui sera sur place, pas
-            à confier un colis.
-          </p>
+          <p className="text-xs text-brand-ink-faint leading-relaxed">{dict.voyageDetail.messagingNotReady}</p>
         </div>
       </div>
 
       <section className="flex flex-col gap-5">
         <div>
           <h2 className="font-display font-bold text-xl">
-            Demandes en attente à {trip.to_wilaya}
+            {t(dict.voyageDetail.pendingRequestsTitle, { wilaya: toWilaya })}
           </h2>
           <p className="text-brand-ink-soft text-sm mt-1">
             {matches.length === 0
-              ? "Aucune demande active dans cette wilaya pour le moment."
-              : `${matches.length} personne${matches.length > 1 ? "s cherchent" : " cherche"} un médicament là où ce trajet arrive.`}
+              ? dict.voyageDetail.noPendingRequests
+              : matches.length === 1
+                ? t(dict.voyageDetail.pendingRequestsCount_one, { n: matches.length })
+                : t(dict.voyageDetail.pendingRequestsCount_other, { n: matches.length })}
           </p>
         </div>
 
         {matches.length > 0 && (
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {matches.map((l) => (
-              <ListingCard key={l.id} listing={l} />
+              <ListingCard key={l.id} listing={l} locale={locale} />
             ))}
           </div>
         )}

@@ -6,11 +6,16 @@ import "@fontsource/sora/800.css";
 import "@fontsource/ibm-plex-sans/400.css";
 import "@fontsource/ibm-plex-sans/500.css";
 import "@fontsource/ibm-plex-sans/600.css";
+import "@fontsource/cairo/400.css";
+import "@fontsource/cairo/500.css";
+import "@fontsource/cairo/600.css";
+import "@fontsource/cairo/700.css";
 import "./globals.css";
 import Nav from "@/components/Nav";
 import Footer from "@/components/Footer";
 import PwaRegister from "@/components/PwaRegister";
 import MobileTabBar from "@/components/MobileTabBar";
+import { getLocale, dirOf } from "@/lib/i18n/locale";
 
 export const metadata: Metadata = {
   title: "Dawaana — Solidarité médicaments",
@@ -43,14 +48,23 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const locale = getLocale();
+  const dir = dirOf(locale);
+
   return (
-    <html lang="fr">
-      <body className="font-body bg-brand-bg text-brand-ink antialiased">
-        <Nav />
+    <html lang={locale} dir={dir}>
+      <body
+        className={
+          locale === "ar"
+            ? "font-arabic bg-brand-bg text-brand-ink antialiased"
+            : "font-body bg-brand-bg text-brand-ink antialiased"
+        }
+      >
+        <Nav locale={locale} />
         {/* Marge basse sur mobile pour que la barre d'onglets ne recouvre rien. */}
         <main className="pb-20 md:pb-0">{children}</main>
-        <Footer />
-        <MobileTabBar />
+        <Footer locale={locale} />
+        <MobileTabBar locale={locale} />
         <PwaRegister />
       </body>
     </html>

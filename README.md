@@ -105,6 +105,40 @@ Les annonces publiées avant cette version sont classées "Médicament" par
 défaut (`supabase/migrations/0005_categories.sql`), ce qui correspond à
 leur contenu réel jusqu'ici — aucune donnée n'a été perdue ou déplacée.
 
+## Site bilingue (français / arabe)
+
+Le site entier — pages publiques, publication, compte, admin — est
+disponible en français et en arabe, avec un bouton de bascule (Nav et
+Footer). Le choix est mémorisé un an dans un cookie (`dawaana_locale`), pas
+dans l'URL : c'est un choix délibéré pour ne jamais toucher à
+`app/auth/callback/route.ts`, dont l'URL est déjà enregistrée dans la
+configuration Supabase (Redirect URLs) — un préfixe `/fr/`or `/ar/` sur
+toutes les routes aurait cassé ce lien.
+
+Comment ça marche :
+
+- `lib/i18n/locale.ts` lit la langue depuis le cookie (`getLocale()`) et
+  calcule le sens d'écriture (`dirOf()` → `rtl` pour l'arabe).
+- `lib/i18n/dictionary.ts` contient tous les textes de l'interface, en
+  français et en arabe, sous forme d'objets TypeScript synchrones (pas de
+  chargement dynamique) — importables aussi bien dans les composants
+  serveur que client.
+- `lib/i18n/labels.ts` traduit à l'affichage les noms de wilaya et de pays
+  (58 wilayas, ~21 pays). **La valeur stockée en base et utilisée pour les
+  filtres reste toujours le libellé français** — seul l'affichage change
+  avec la langue, pour ne jamais dérégler les annonces déjà publiées.
+- `app/layout.tsx` pose `<html lang dir>` dynamiquement et charge la police
+  Cairo (arabe) en plus de Sora/IBM Plex Sans.
+- `components/LangSwitcher.tsx` change le cookie via une Server Action puis
+  rafraîchit la page.
+
+Limite assumée : le passage en arabe déclenche l'écriture de droite à
+gauche (`dir="rtl"`), et la plupart des mises en page (`flex` par défaut)
+s'inversent automatiquement — mais ce n'est pas un travail RTL
+pixel-parfait. Quelques détails mineurs (icônes flèche non retournées dans
+un texte, alignement fin de certains badges) peuvent rester imparfaits ;
+signalez-les si vous en repérez.
+
 ## Choix structurant sur l'identité
 
 La vérification d'identité **ne stocke aucune pièce d'identité, aucun selfie
@@ -230,4 +264,3 @@ supabase/migrations/       schéma SQL de la base de données
   (lister les annonces à vérifier, marquer "vérifié"/"rejeté")
 - Ajouter la version arabe (RTL) de cette application codée
 - Mettre en place une vraie modération (rôle admin, Supabase Auth)
-

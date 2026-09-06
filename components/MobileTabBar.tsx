@@ -3,30 +3,33 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { SearchIcon, PlaneIcon, PlusIcon, ShieldIcon, UserIcon } from "./icons";
-
-const TABS = [
-  { href: "/", label: "Accueil", Icon: ShieldIcon },
-  { href: "/annonces", label: "Annonces", Icon: SearchIcon },
-  { href: "/voyages", label: "Voyages", Icon: PlaneIcon },
-  { href: "/publier", label: "Publier", Icon: PlusIcon },
-  { href: "/mon-compte", label: "Compte", Icon: UserIcon },
-];
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 /**
  * Barre d'onglets affichée uniquement sur mobile : le menu de l'en-tête est
  * masqué sous md, et sans elle on ne peut atteindre ni les annonces ni les
  * trajets depuis un téléphone.
  */
-export default function MobileTabBar() {
+export default function MobileTabBar({ locale }: { locale: Locale }) {
+  const dict = getDictionary(locale);
   const pathname = usePathname();
+
+  const tabs = [
+    { href: "/", label: dict.mobileTabBar.home, Icon: ShieldIcon },
+    { href: "/annonces", label: dict.mobileTabBar.listings, Icon: SearchIcon },
+    { href: "/voyages", label: dict.mobileTabBar.trips, Icon: PlaneIcon },
+    { href: "/publier", label: dict.mobileTabBar.publish, Icon: PlusIcon },
+    { href: "/mon-compte", label: dict.mobileTabBar.account, Icon: UserIcon },
+  ];
 
   return (
     <nav
-      aria-label="Navigation principale"
+      aria-label={dict.mobileTabBar.ariaLabel}
       className="md:hidden fixed bottom-0 inset-x-0 z-20 bg-brand-surface border-t border-brand-border pb-[env(safe-area-inset-bottom)]"
     >
       <ul className="grid grid-cols-5">
-        {TABS.map(({ href, label, Icon }) => {
+        {tabs.map(({ href, label, Icon }) => {
           const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
           return (
             <li key={href}>

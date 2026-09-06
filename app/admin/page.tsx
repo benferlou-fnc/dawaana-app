@@ -2,17 +2,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import {
-  type Listing,
-  type Trip,
-  type Profile,
-  LISTING_STATUS_LABEL,
-  TRIP_STATUS_LABEL,
-  LISTING_CATEGORY_LABEL,
-} from "@/lib/types";
-import { formatDateFr, relativeTimeFr } from "@/lib/relativeTime";
+import { type Listing, type Trip, type Profile } from "@/lib/types";
+import { formatDate, relativeTime } from "@/lib/relativeTime";
 import { ModerateActions, VerifyToggle } from "@/components/AdminActions";
 import { ShieldIcon, GlobeIcon } from "@/components/icons";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary, t } from "@/lib/i18n/dictionary";
+import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Modération — Dawaana", robots: { index: false } };
@@ -55,6 +51,9 @@ export default async function AdminPage({
 }: {
   searchParams: { statut?: string };
 }) {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
+
   if (!isSupabaseConfigured) notFound();
 
   const me = await getCurrentProfile();
@@ -96,10 +95,10 @@ export default async function AdminPage({
   const nonVerifies = members.filter((m) => !m.identity_verified).length;
 
   const filters: { key: Filter; label: string }[] = [
-    { key: "toutes", label: "Toutes" },
-    { key: "active", label: "En ligne" },
-    { key: "resolue", label: "Résolues" },
-    { key: "retiree", label: "Retirées" },
+    { key: "toutes", label: dict.admin.filterAll },
+    { key: "active", label: dict.admin.filterActive },
+    { key: "resolue", label: dict.admin.filterResolved },
+    { key: "retiree", label: dict.admin.filterRemoved },
   ];
 
   return (
@@ -107,26 +106,25 @@ export default async function AdminPage({
       <header className="flex flex-col gap-2">
         <span className="inline-flex items-center gap-2 w-fit rounded-full bg-brand-ink text-white text-[11px] font-bold px-3 h-6">
           <ShieldIcon size={12} />
-          Modération
+          {dict.account.moderation}
         </span>
-        <h1 className="font-display font-extrabold text-[28px]">Console d&apos;administration</h1>
+        <h1 className="font-display font-extrabold text-[28px]">{dict.admin.title}</h1>
         <p className="text-brand-ink-soft text-sm">
-          Connecté en tant que {me.first_name}. Les 100 entrées les plus récentes de
-          chaque catégorie.
+          {t(dict.admin.connectedAs, { name: me.first_name })}
         </p>
       </header>
 
       <section className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Stat label="Annonces" value={listings.length} />
-        <Stat label="Demandes urgentes" value={urgentActifs} tone="alert" />
-        <Stat label="Trajets" value={trips.length} />
-        <Stat label="Membres" value={members.length} />
+        <Stat label={dict.admin.statListings} value={listings.length} />
+        <Stat label={dict.admin.statUrgentRequests} value={urgentActifs} tone="alert" />
+        <Stat label={dict.admin.statTrips} value={trips.length} />
+        <Stat label={dict.admin.statMembers} value={members.length} />
       </section>
 
       {/* ---------- Annonces ---------- */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display font-bold text-lg">Annonces</h2>
+          <h2 className="font-display font-bold text-lg">{dict.admin.listingsTitle}</h2>
           <div className="flex flex-wrap gap-1.5">
             {filters.map((f) => (
               <Link
@@ -146,7 +144,7 @@ export default async function AdminPage({
 
         {listings.length === 0 ? (
           <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 text-center text-brand-ink-faint text-sm">
-            Aucune annonce pour ce filtre.
+            {dict.admin.noListingsForFilter}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -163,26 +161,26 @@ export default async function AdminPage({
                       </Link>
                       {l.type === "recherche" && l.urgency === "urgent" && (
                         <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold bg-brand-coral-tint text-brand-coral-dark">
-                          Urgent
+                          {dict.listingCard.urgent}
                         </span>
                       )}
                     </div>
                     <div className="text-[12.5px] text-brand-ink-faint mt-0.5 flex flex-wrap items-center gap-x-2">
-                      <span>{l.type === "don" ? "Don" : "Demande"}</span>
+                      <span>{l.type === "don" ? dict.listingCard.don : dict.listingCard.demande}</span>
                       <span>·</span>
-                      <span>{LISTING_CATEGORY_LABEL[l.category] ?? LISTING_CATEGORY_LABEL.medicament}</span>
+                      <span>{dict.categories[l.category] ?? dict.categories.medicament}</span>
                       <span>·</span>
-                      <span>{l.wilaya}</span>
+                      <span>{wilayaLabel(l.wilaya, locale)}</span>
                       <span>·</span>
                       <span>{l.first_name ?? l.pseudonym ?? "—"}</span>
                       <span>·</span>
-                      <span>{relativeTimeFr(l.created_at)}</span>
+                      <span>{relativeTime(l.created_at, locale)}</span>
                       {l.donor_country && (
                         <>
                           <span>·</span>
                           <span className="inline-flex items-center gap-1">
                             <GlobeIcon size={12} />
-                            {[l.donor_city, l.donor_country].filter(Boolean).join(", ")}
+                            {[l.donor_city, countryLabel(l.donor_country, locale)].filter(Boolean).join(", ")}
                           </span>
                         </>
                       )}
@@ -193,9 +191,9 @@ export default async function AdminPage({
                       </p>
                     )}
                   </div>
-                  <Pill label={LISTING_STATUS_LABEL[l.status]} active={l.status === "active"} />
+                  <Pill label={dict.listingStatus[l.status]} active={l.status === "active"} />
                 </div>
-                <ModerateActions table="listings" id={l.id} status={l.status} />
+                <ModerateActions table="listings" id={l.id} status={l.status} locale={locale} />
               </div>
             ))}
           </div>
@@ -204,30 +202,33 @@ export default async function AdminPage({
 
       {/* ---------- Trajets ---------- */}
       <section className="flex flex-col gap-4">
-        <h2 className="font-display font-bold text-lg">Trajets</h2>
+        <h2 className="font-display font-bold text-lg">{dict.admin.tripsTitle}</h2>
         {trips.length === 0 ? (
           <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 text-center text-brand-ink-faint text-sm">
-            Aucun trajet annoncé.
+            {dict.admin.noTripsAnnounced}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
-            {trips.map((t) => (
+            {trips.map((t2) => (
               <div
-                key={t.id}
+                key={t2.id}
                 className="bg-brand-surface border border-brand-border rounded-xl p-4 flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-3 flex-wrap">
                   <div>
-                    <Link href={`/voyages/${t.id}`} className="font-bold hover:underline">
-                      {[t.from_city, t.from_country].filter(Boolean).join(", ")} → {t.to_wilaya}
+                    <Link href={`/voyages/${t2.id}`} className="font-bold hover:underline">
+                      {[t2.from_city, t2.from_country ? countryLabel(t2.from_country, locale) : null]
+                        .filter(Boolean)
+                        .join(", ")}{" "}
+                      → {wilayaLabel(t2.to_wilaya, locale)}
                     </Link>
                     <div className="text-[12.5px] text-brand-ink-faint mt-0.5">
-                      {formatDateFr(t.travel_date)} · {t.first_name}
+                      {formatDate(t2.travel_date, locale)} · {t2.first_name}
                     </div>
                   </div>
-                  <Pill label={TRIP_STATUS_LABEL[t.status]} active={t.status === "active"} />
+                  <Pill label={dict.tripStatus[t2.status]} active={t2.status === "active"} />
                 </div>
-                <ModerateActions table="trips" id={t.id} status={t.status} />
+                <ModerateActions table="trips" id={t2.id} status={t2.status} locale={locale} />
               </div>
             ))}
           </div>
@@ -237,24 +238,20 @@ export default async function AdminPage({
       {/* ---------- Membres ---------- */}
       <section className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display font-bold text-lg">Membres</h2>
+          <h2 className="font-display font-bold text-lg">{dict.admin.membersTitle}</h2>
           <span className="text-xs text-brand-ink-faint">
-            {nonVerifies} en attente de vérification
+            {t(dict.admin.pendingVerification, { n: nonVerifies })}
           </span>
         </div>
 
         <div className="flex gap-3 px-4 py-3.5 bg-brand-surface border border-brand-border rounded-xl">
           <ShieldIcon size={17} className="text-brand-ink-faint flex-none mt-0.5" />
-          <p className="text-xs text-brand-ink-soft leading-relaxed">
-            Ne posez le badge qu&apos;après une vérification réelle par le
-            prestataire. Dawaana ne conserve aucune pièce d&apos;identité : ce
-            bouton n&apos;enregistre que le résultat, oui ou non.
-          </p>
+          <p className="text-xs text-brand-ink-soft leading-relaxed">{dict.admin.verifyNoteBody}</p>
         </div>
 
         {members.length === 0 ? (
           <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 text-center text-brand-ink-faint text-sm">
-            Aucun membre inscrit.
+            {dict.admin.noMembers}
           </div>
         ) : (
           <div className="flex flex-col gap-2.5">
@@ -272,17 +269,17 @@ export default async function AdminPage({
                       {m.first_name}
                       {m.is_admin && (
                         <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold bg-brand-ink text-white">
-                          Admin
+                          {dict.admin.adminBadge}
                         </span>
                       )}
                     </div>
                     <div className="text-[12px] text-brand-ink-faint">
-                      {m.identity_verified ? "Identité vérifiée" : "Non vérifié"}
-                      {m.created_at && ` · inscrit ${relativeTimeFr(m.created_at)}`}
+                      {m.identity_verified ? dict.admin.verified : dict.admin.notVerified}
+                      {m.created_at && ` · ${dict.admin.registeredSince} ${relativeTime(m.created_at, locale)}`}
                     </div>
                   </div>
                 </div>
-                <VerifyToggle profileId={m.id} verified={m.identity_verified} />
+                <VerifyToggle profileId={m.id} verified={m.identity_verified} locale={locale} />
               </div>
             ))}
           </div>

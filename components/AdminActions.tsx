@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 type Table = "listings" | "trips";
 
@@ -11,11 +13,14 @@ export function ModerateActions({
   table,
   id,
   status,
+  locale,
 }: {
   table: Table;
   id: string;
   status: string;
+  locale: Locale;
 }) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [confirming, setConfirming] = useState(false);
@@ -27,7 +32,7 @@ export function ModerateActions({
     const { error } = await createClient().from(table).update({ status: next }).eq("id", id);
     setBusy(false);
     if (error) {
-      setErrorMsg("Action refusée.");
+      setErrorMsg(dict.admin.actionRefused);
       console.error(error);
       return;
     }
@@ -40,7 +45,7 @@ export function ModerateActions({
     const { error } = await createClient().from(table).delete().eq("id", id);
     setBusy(false);
     if (error) {
-      setErrorMsg("Suppression refusée.");
+      setErrorMsg(dict.admin.deleteRefused);
       console.error(error);
       return;
     }
@@ -55,11 +60,11 @@ export function ModerateActions({
     <div className="flex flex-wrap items-center gap-1.5">
       {status === "active" ? (
         <button type="button" disabled={busy} onClick={() => setStatus(table === "listings" ? "retiree" : "retire")} className={btn}>
-          Retirer
+          {dict.admin.remove}
         </button>
       ) : (
         <button type="button" disabled={busy} onClick={() => setStatus("active")} className={btn}>
-          Remettre
+          {dict.admin.restore}
         </button>
       )}
 
@@ -70,7 +75,7 @@ export function ModerateActions({
           onClick={() => setConfirming(true)}
           className={`${btn} text-brand-coral-dark border-brand-coral`}
         >
-          Supprimer
+          {dict.admin.delete}
         </button>
       ) : (
         <span className="inline-flex items-center gap-1.5">
@@ -80,10 +85,10 @@ export function ModerateActions({
             onClick={remove}
             className="h-8 px-3 rounded-lg text-[11px] font-semibold bg-brand-coral text-white disabled:opacity-50"
           >
-            {busy ? "…" : "Confirmer"}
+            {busy ? "…" : dict.admin.confirm}
           </button>
           <button type="button" disabled={busy} onClick={() => setConfirming(false)} className={btn}>
-            Annuler
+            {dict.admin.cancel}
           </button>
         </span>
       )}
@@ -101,10 +106,13 @@ export function ModerateActions({
 export function VerifyToggle({
   profileId,
   verified,
+  locale,
 }: {
   profileId: string;
   verified: boolean;
+  locale: Locale;
 }) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -118,7 +126,7 @@ export function VerifyToggle({
     });
     setBusy(false);
     if (error) {
-      setErrorMsg("Action refusée.");
+      setErrorMsg(dict.admin.actionRefused);
       console.error(error);
       return;
     }
@@ -137,7 +145,7 @@ export function VerifyToggle({
             : "border-brand-green text-brand-green-dark hover:bg-brand-green-tint"
         }`}
       >
-        {busy ? "…" : verified ? "Retirer le badge" : "Marquer vérifié"}
+        {busy ? "…" : verified ? dict.admin.unmarkVerified : dict.admin.markVerified}
       </button>
       {errorMsg && <span className="text-[11px] text-brand-coral-dark">{errorMsg}</span>}
     </div>

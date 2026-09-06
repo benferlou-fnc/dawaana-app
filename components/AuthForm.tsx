@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { ArrowRightIcon, ShieldIcon } from "./icons";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 function GoogleMark() {
   return (
@@ -18,7 +20,14 @@ function GoogleMark() {
   );
 }
 
-export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }) {
+export default function AuthForm({
+  mode,
+  locale,
+}: {
+  mode: "connexion" | "inscription";
+  locale: Locale;
+}) {
+  const dict = getDictionary(locale);
   const router = useRouter();
   const isSignup = mode === "inscription";
 
@@ -34,17 +43,13 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
 
   function friendlyError(message: string) {
     const m = message.toLowerCase();
-    if (m.includes("invalid login")) return "E-mail ou mot de passe incorrect.";
+    if (m.includes("invalid login")) return dict.auth.errorInvalidLogin;
     if (m.includes("already registered") || m.includes("already been registered"))
-      return "Un compte existe déjà avec cet e-mail. Connectez-vous plutôt.";
-    if (m.includes("password") && m.includes("6"))
-      return "Le mot de passe doit contenir au moins 6 caractères.";
-    if (m.includes("email not confirmed"))
-      return "Votre e-mail n'est pas encore confirmé — vérifiez votre boîte de réception.";
-    if (m.includes("provider is not enabled"))
-      return "La connexion Google n'est pas encore activée sur ce site.";
-    if (m.includes("rate limit") || m.includes("too many"))
-      return "Trop de tentatives. Réessayez dans quelques minutes.";
+      return dict.auth.errorAlreadyRegistered;
+    if (m.includes("password") && m.includes("6")) return dict.auth.errorPasswordLength;
+    if (m.includes("email not confirmed")) return dict.auth.errorEmailNotConfirmed;
+    if (m.includes("provider is not enabled")) return dict.auth.errorGoogleDisabled;
+    if (m.includes("rate limit") || m.includes("too many")) return dict.auth.errorRateLimit;
     return message;
   }
 
@@ -54,15 +59,15 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
     setInfoMsg(null);
 
     if (!isSupabaseConfigured) {
-      setErrorMsg("La base de données n'est pas connectée sur cet environnement.");
+      setErrorMsg(dict.auth.errorNotConfigured);
       return;
     }
     if (isSignup && !firstName.trim()) {
-      setErrorMsg("Merci d'indiquer votre prénom.");
+      setErrorMsg(dict.auth.errorMissingFirstName);
       return;
     }
     if (!email.trim() || !password) {
-      setErrorMsg("Merci de renseigner votre e-mail et votre mot de passe.");
+      setErrorMsg(dict.auth.errorMissingCreds);
       return;
     }
 
@@ -86,9 +91,7 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
       }
       // Sans session renvoyée, Supabase attend une confirmation par e-mail.
       if (!data.session) {
-        setInfoMsg(
-          "Compte créé. Ouvrez l'e-mail de confirmation que nous venons de vous envoyer pour activer votre compte."
-        );
+        setInfoMsg(dict.auth.infoCheckEmail);
         return;
       }
     } else {
@@ -111,7 +114,7 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
   async function handleGoogle() {
     setErrorMsg(null);
     if (!isSupabaseConfigured) {
-      setErrorMsg("La base de données n'est pas connectée sur cet environnement.");
+      setErrorMsg(dict.auth.errorNotConfigured);
       return;
     }
     setBusy(true);
@@ -130,12 +133,10 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
     <div className="max-w-md mx-auto px-6 py-14">
       <div className="mb-7">
         <h1 className="font-display font-extrabold text-[28px]">
-          {isSignup ? "Créer un compte" : "Se connecter"}
+          {isSignup ? dict.auth.signupTitle : dict.auth.loginTitle}
         </h1>
         <p className="text-brand-ink-soft text-sm mt-1">
-          {isSignup
-            ? "Un compte permet de publier, puis de retirer vos annonces quand vous n'en avez plus besoin."
-            : "Retrouvez vos annonces et vos trajets."}
+          {isSignup ? dict.auth.signupSubtitle : dict.auth.loginSubtitle}
         </p>
       </div>
 
@@ -147,51 +148,49 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
           className="w-full h-12 rounded-xl border-[1.5px] border-brand-border flex items-center justify-center gap-3 font-display font-semibold text-sm hover:bg-brand-bg transition disabled:opacity-60"
         >
           <GoogleMark />
-          Continuer avec Google
+          {dict.auth.continueGoogle}
         </button>
 
         <div className="flex items-center gap-3 text-xs text-brand-ink-faint">
           <span className="h-px flex-1 bg-brand-border" />
-          ou
+          {dict.auth.or}
           <span className="h-px flex-1 bg-brand-border" />
         </div>
 
         <form onSubmit={handleEmail} className="flex flex-col gap-4">
           {isSignup && (
             <div>
-              <label className="block text-[13.5px] font-semibold mb-2">Prénom</label>
+              <label className="block text-[13.5px] font-semibold mb-2">{dict.auth.firstName}</label>
               <input
                 value={firstName}
                 onChange={(e) => setFirstName(e.target.value)}
-                placeholder="ex. Amine"
+                placeholder={dict.auth.firstNamePlaceholder}
                 autoComplete="given-name"
                 className={field}
               />
-              <p className="text-xs text-brand-ink-faint mt-2">
-                C&apos;est le seul élément affiché publiquement à côté de vos annonces.
-              </p>
+              <p className="text-xs text-brand-ink-faint mt-2">{dict.auth.firstNameHelp}</p>
             </div>
           )}
 
           <div>
-            <label className="block text-[13.5px] font-semibold mb-2">E-mail</label>
+            <label className="block text-[13.5px] font-semibold mb-2">{dict.auth.email}</label>
             <input
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="vous@exemple.com"
+              placeholder={dict.auth.emailPlaceholder}
               autoComplete="email"
               className={field}
             />
           </div>
 
           <div>
-            <label className="block text-[13.5px] font-semibold mb-2">Mot de passe</label>
+            <label className="block text-[13.5px] font-semibold mb-2">{dict.auth.password}</label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder={isSignup ? "6 caractères minimum" : "Votre mot de passe"}
+              placeholder={isSignup ? dict.auth.passwordPlaceholderSignup : dict.auth.passwordPlaceholderLogin}
               autoComplete={isSignup ? "new-password" : "current-password"}
               className={field}
             />
@@ -213,18 +212,17 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
             disabled={busy}
             className="w-full h-[52px] rounded-xl bg-brand-coral text-white font-display font-semibold flex items-center justify-center gap-2 disabled:opacity-60"
           >
-            {busy ? "Un instant…" : isSignup ? "Créer mon compte" : "Se connecter"}
-            {!busy && <ArrowRightIcon />}
+            {busy ? dict.auth.submitting : isSignup ? dict.auth.submitSignup : dict.auth.submitLogin}
+            {!busy && <ArrowRightIcon className="rtl:-scale-x-100" />}
           </button>
         </form>
 
         <div className="flex gap-3 px-4 py-3.5 bg-brand-bg rounded-xl">
           <ShieldIcon size={17} className="text-brand-ink-faint flex-none mt-0.5" />
           <p className="text-xs text-brand-ink-faint leading-relaxed">
-            Votre e-mail sert uniquement à vous connecter — il n&apos;est jamais
-            affiché ni communiqué.{" "}
+            {dict.auth.emailPrivacyNote}{" "}
             <Link href="/confidentialite" className="underline underline-offset-2">
-              Vos données
+              {dict.auth.dataLink}
             </Link>
           </p>
         </div>
@@ -233,16 +231,16 @@ export default function AuthForm({ mode }: { mode: "connexion" | "inscription" }
       <p className="text-center text-sm text-brand-ink-soft mt-6">
         {isSignup ? (
           <>
-            Déjà un compte ?{" "}
+            {dict.auth.alreadyHaveAccount}{" "}
             <Link href="/connexion" className="font-semibold text-brand-coral-dark underline underline-offset-2">
-              Se connecter
+              {dict.auth.loginLink}
             </Link>
           </>
         ) : (
           <>
-            Pas encore de compte ?{" "}
+            {dict.auth.noAccountYet}{" "}
             <Link href="/inscription" className="font-semibold text-brand-coral-dark underline underline-offset-2">
-              En créer un
+              {dict.auth.createOneLink}
             </Link>
           </>
         )}

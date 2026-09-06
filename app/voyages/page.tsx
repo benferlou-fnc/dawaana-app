@@ -5,6 +5,9 @@ import { TRIP_SELECT, type Trip } from "@/lib/types";
 import TripCard from "@/components/TripCard";
 import { WILAYAS } from "@/lib/wilayas";
 import { PlusIcon, ShieldIcon } from "@/components/icons";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { wilayaLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -39,39 +42,32 @@ export default async function VoyagesPage({
 }: {
   searchParams: { wilaya?: string };
 }) {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
   const trips = await getTrips(searchParams);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-11">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
-          <h1 className="font-display font-extrabold text-[28px]">Carnet de voyages</h1>
-          <p className="text-brand-ink-soft text-sm mt-1 max-w-xl">
-            Les membres de la diaspora annoncent leurs trajets vers l&apos;Algérie.
-            Savoir que quelqu&apos;un arrive bientôt dans une wilaya permet de
-            s&apos;organiser à l&apos;avance.
-          </p>
+          <h1 className="font-display font-extrabold text-[28px]">{dict.voyages.title}</h1>
+          <p className="text-brand-ink-soft text-sm mt-1 max-w-xl">{dict.voyages.subtitle}</p>
         </div>
         <Link
           href="/voyages/publier"
           className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-brand-green-dark text-white font-display font-semibold text-sm hover:brightness-110 transition flex-none"
         >
           <PlusIcon />
-          J&apos;annonce mon trajet
+          {dict.voyages.announceTrip}
         </Link>
       </div>
 
       <div className="flex gap-3 mb-8 p-4 bg-brand-surface border border-brand-border rounded-2xl">
         <ShieldIcon size={18} className="text-brand-ink-faint flex-none mt-0.5" />
         <p className="text-xs text-brand-ink-soft leading-relaxed">
-          <strong className="text-brand-ink">Ce carnet sert à se coordonner, pas à confier un colis.</strong>{" "}
-          La réglementation douanière algérienne exige que les médicaments soient
-          étiquetés au nom de la personne qui les transporte et accompagnés de son
-          ordonnance. Transporter un médicament pour le compte d&apos;un tiers ne
-          rentre pas dans ce cadre — Dawaana ne l&apos;organise pas et ne le
-          recommande pas.{" "}
+          <strong className="text-brand-ink">{dict.voyages.noticeStrong}</strong> {dict.voyages.noticeBody}{" "}
           <Link href="/confidentialite" className="underline underline-offset-2">
-            En savoir plus
+            {dict.voyages.learnMore}
           </Link>
         </p>
       </div>
@@ -82,10 +78,10 @@ export default async function VoyagesPage({
           defaultValue={searchParams.wilaya ?? ""}
           className="h-11 px-4 rounded-xl border-[1.5px] border-brand-border bg-brand-surface text-sm text-brand-ink-soft"
         >
-          <option value="">Toutes les wilayas d&apos;arrivée</option>
+          <option value="">{dict.voyages.allArrivalWilayas}</option>
           {WILAYAS.map((w) => (
             <option key={w} value={w}>
-              {w}
+              {wilayaLabel(w, locale)}
             </option>
           ))}
         </select>
@@ -93,22 +89,22 @@ export default async function VoyagesPage({
           type="submit"
           className="h-11 px-5 rounded-xl bg-brand-ink text-white text-sm font-display font-semibold"
         >
-          Filtrer
+          {dict.voyages.filter}
         </button>
       </form>
 
       {!isSupabaseConfigured ? (
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-8 text-center text-brand-ink-faint text-sm">
-          Connectez Supabase pour afficher les trajets en direct.
+          {dict.voyages.notConfigured}
         </div>
       ) : trips.length === 0 ? (
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-8 text-center text-brand-ink-faint text-sm">
-          Aucun trajet annoncé pour le moment — soyez le premier à publier le vôtre.
+          {dict.voyages.noResults}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {trips.map((t) => (
-            <TripCard key={t.id} trip={t} />
+            <TripCard key={t.id} trip={t} locale={locale} />
           ))}
         </div>
       )}

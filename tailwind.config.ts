@@ -23,6 +23,7 @@ const config: Config = {
       fontFamily: {
         display: ["Sora", "system-ui", "sans-serif"],
         body: ["IBM Plex Sans", "system-ui", "sans-serif"],
+        arabic: ["Cairo", "system-ui", "sans-serif"],
       },
       borderRadius: {
         xl2: "1.25rem",

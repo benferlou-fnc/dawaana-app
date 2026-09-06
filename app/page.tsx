@@ -4,6 +4,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { LISTING_SELECT, type Listing } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import { SearchIcon, GiftIcon, CheckIcon, ArrowRightIcon, ShieldIcon, ShieldCheckIcon, MapPinIcon } from "@/components/icons";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
 // Aucune mise en cache : une demande de médicament urgente doit apparaître
 // immédiatement. Le volume de données est minuscule, il n'y a rien à gagner
@@ -27,6 +29,8 @@ async function getRecentListings(): Promise<Listing[]> {
 }
 
 export default async function HomePage() {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
   const listings = await getRecentListings();
 
   return (
@@ -39,18 +43,14 @@ export default async function HomePage() {
           <div className="flex flex-col gap-6">
             <span className="inline-flex items-center gap-2 w-fit rounded-full bg-brand-green-tint text-brand-green-dark text-xs font-bold px-3 h-[30px]">
               <ShieldIcon size={14} />
-              Projet associatif à but non lucratif
+              {dict.home.badge}
             </span>
             <h1 className="font-display font-extrabold text-4xl md:text-[3.2rem] leading-[1.08]">
-              Le médicament qui manque ici existe peut-être là-bas.
+              {dict.home.heroTitle}
             </h1>
             <p className="text-lg text-brand-ink-soft leading-relaxed max-w-lg">
-              Dawaana relie les familles en Algérie à la diaspora et à la
-              communauté locale pour partager les médicaments rares ou
-              introuvables —{" "}
-              <strong className="text-brand-ink">
-                gratuitement, sans jamais d&apos;argent en jeu.
-              </strong>
+              {dict.home.heroSubtitle}{" "}
+              <strong className="text-brand-ink">{dict.home.heroSubtitleStrong}</strong>
             </p>
             <div className="flex flex-wrap gap-3 pt-1">
               <Link
@@ -58,25 +58,25 @@ export default async function HomePage() {
                 className="inline-flex items-center gap-2 h-[54px] px-6 rounded-xl bg-brand-coral text-white font-display font-semibold hover:brightness-95 transition"
               >
                 <SearchIcon size={18} />
-                Je cherche un produit
+                {dict.home.ctaSearch}
               </Link>
               <Link
                 href="/publier"
                 className="inline-flex items-center gap-2 h-[54px] px-6 rounded-xl border-[1.5px] border-brand-green text-brand-green-dark font-display font-semibold hover:bg-brand-green-tint transition"
               >
                 <GiftIcon size={18} />
-                J&apos;ai un produit à donner
+                {dict.home.ctaGive}
               </Link>
             </div>
             <div className="flex flex-wrap gap-6 pt-2 text-[13px] font-medium text-brand-ink-faint">
               <span className="flex items-center gap-2">
-                <CheckIcon /> 100% gratuit, toujours
+                <CheckIcon /> {dict.home.checkFree}
               </span>
               <span className="flex items-center gap-2">
-                <CheckIcon /> Remise en main propre, jamais par la poste
+                <CheckIcon /> {dict.home.checkHandoff}
               </span>
               <span className="flex items-center gap-2">
-                <CheckIcon /> Prénom seul, jamais votre nom complet
+                <CheckIcon /> {dict.home.checkFirstName}
               </span>
             </div>
           </div>
@@ -84,12 +84,10 @@ export default async function HomePage() {
           <div className="flex flex-col gap-3">
             {listings.length === 0 ? (
               <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 text-sm text-brand-ink-faint">
-                {isSupabaseConfigured
-                  ? "Aucune annonce pour le moment — soyez le premier à en publier une."
-                  : "Connectez Supabase pour afficher les annonces en direct ici."}
+                {isSupabaseConfigured ? dict.home.emptyListings : dict.home.notConfigured}
               </div>
             ) : (
-              listings.map((l) => <ListingCard key={l.id} listing={l} />)
+              listings.map((l) => <ListingCard key={l.id} listing={l} locale={locale} />)
             )}
           </div>
         </div>
@@ -99,44 +97,30 @@ export default async function HomePage() {
       <section id="comment-ca-marche" className="bg-brand-surface border-y border-brand-border py-20">
         <div className="max-w-6xl mx-auto px-6">
           <div className="max-w-xl mx-auto text-center flex flex-col gap-3 mb-14">
-            <h2 className="font-display font-extrabold text-3xl">Comment ça marche</h2>
-            <p className="text-brand-ink-soft">
-              Trois étapes simples, pensées pour la sécurité de tous — aucune
-              vente, aucun envoi postal de produits.
-            </p>
+            <h2 className="font-display font-extrabold text-3xl">{dict.home.howItWorksTitle}</h2>
+            <p className="text-brand-ink-soft">{dict.home.howItWorksSubtitle}</p>
           </div>
           <div className="grid md:grid-cols-3 gap-8">
             <div className="flex flex-col gap-4">
               <div className="w-[52px] h-[52px] rounded-2xl bg-brand-coral-tint flex items-center justify-center text-brand-coral-dark">
                 <SearchIcon size={22} />
               </div>
-              <h3 className="font-display font-bold text-lg">1. Publiez votre besoin ou votre don</h3>
-              <p className="text-sm text-brand-ink-soft leading-relaxed">
-                Nom du produit, catégorie, wilaya, niveau d&apos;urgence.
-                Aucune coordonnée personnelle n&apos;est rendue publique.
-              </p>
+              <h3 className="font-display font-bold text-lg">{dict.home.step1Title}</h3>
+              <p className="text-sm text-brand-ink-soft leading-relaxed">{dict.home.step1Body}</p>
             </div>
             <div className="flex flex-col gap-4">
               <div className="w-[52px] h-[52px] rounded-2xl bg-brand-green-tint flex items-center justify-center text-brand-green-dark">
                 <ShieldCheckIcon size={22} />
               </div>
-              <h3 className="font-display font-bold text-lg">2. La communauté répond</h3>
-              <p className="text-sm text-brand-ink-soft leading-relaxed">
-                Faire valider chaque don par un pharmacien bénévole est
-                l&apos;objectif du projet — le réseau reste à constituer. En
-                attendant, vérifiez vous-même péremption et emballage.
-              </p>
+              <h3 className="font-display font-bold text-lg">{dict.home.step2Title}</h3>
+              <p className="text-sm text-brand-ink-soft leading-relaxed">{dict.home.step2Body}</p>
             </div>
             <div className="flex flex-col gap-4">
               <div className="w-[52px] h-[52px] rounded-2xl bg-brand-coral-tint flex items-center justify-center text-brand-coral-dark">
                 <MapPinIcon size={22} />
               </div>
-              <h3 className="font-display font-bold text-lg">3. Remise en main propre</h3>
-              <p className="text-sm text-brand-ink-soft leading-relaxed">
-                Directement entre les deux personnes, dans un lieu public et
-                convenu — jamais par voie postale, et sans aucun échange
-                d&apos;argent.
-              </p>
+              <h3 className="font-display font-bold text-lg">{dict.home.step3Title}</h3>
+              <p className="text-sm text-brand-ink-soft leading-relaxed">{dict.home.step3Body}</p>
             </div>
           </div>
         </div>
@@ -146,21 +130,15 @@ export default async function HomePage() {
       <section className="max-w-6xl mx-auto px-6 py-16">
         <div className="rounded-[28px] bg-gradient-to-br from-brand-green-dark to-brand-green px-10 py-12 flex flex-col md:flex-row items-center justify-between gap-8">
           <div className="max-w-lg flex flex-col gap-3">
-            <h2 className="text-white font-display font-extrabold text-2xl">
-              Un médicament qui dort dans votre pharmacie peut sauver
-              quelqu&apos;un.
-            </h2>
-            <p className="text-green-50/90 text-sm leading-relaxed">
-              Rentrer d&apos;un voyage avec un reliquat, ou en avoir chez vous
-              sans usage ? Proposez-le à la communauté, gratuitement.
-            </p>
+            <h2 className="text-white font-display font-extrabold text-2xl">{dict.home.ctaTitle}</h2>
+            <p className="text-green-50/90 text-sm leading-relaxed">{dict.home.ctaBody}</p>
           </div>
           <Link
             href="/publier"
             className="inline-flex items-center gap-2 h-[54px] px-7 rounded-xl bg-white text-brand-green-dark font-display font-semibold shrink-0"
           >
-            Proposer un don
-            <ArrowRightIcon />
+            {dict.home.ctaButton}
+            <ArrowRightIcon className="rtl:-scale-x-100" />
           </Link>
         </div>
       </section>

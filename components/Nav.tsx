@@ -1,10 +1,14 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import LangSwitcher from "./LangSwitcher";
 import { PlusIcon } from "./icons";
 import { getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import type { Locale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
 
-export default async function Nav() {
+export default async function Nav({ locale }: { locale: Locale }) {
+  const dict = getDictionary(locale);
   const profile = isSupabaseConfigured ? await getCurrentProfile() : null;
 
   return (
@@ -14,17 +18,19 @@ export default async function Nav() {
 
         <nav className="hidden md:flex items-center gap-9 text-sm font-medium text-brand-ink-soft">
           <Link href="/#comment-ca-marche" className="hover:text-brand-coral-dark">
-            Comment ça marche
+            {dict.nav.howItWorks}
           </Link>
           <Link href="/annonces" className="hover:text-brand-coral-dark">
-            Parcourir les annonces
+            {dict.nav.browseListings}
           </Link>
           <Link href="/voyages" className="hover:text-brand-coral-dark">
-            Carnet de voyages
+            {dict.nav.travelJournal}
           </Link>
         </nav>
 
         <div className="flex items-center gap-3">
+          <LangSwitcher locale={locale} className="hidden sm:inline-flex" />
+
           {profile ? (
             <Link
               href="/mon-compte"
@@ -40,7 +46,7 @@ export default async function Nav() {
               href="/connexion"
               className="hidden sm:inline-flex items-center h-11 px-4 rounded-xl text-sm font-semibold text-brand-ink-soft hover:text-brand-coral-dark transition"
             >
-              Se connecter
+              {dict.nav.login}
             </Link>
           )}
 
@@ -49,8 +55,8 @@ export default async function Nav() {
             className="inline-flex items-center gap-2 h-11 px-5 rounded-xl bg-brand-coral text-white font-display font-semibold text-sm hover:brightness-95 transition"
           >
             <PlusIcon />
-            Publier
-            <span className="hidden md:inline">une annonce</span>
+            {dict.nav.publish}
+            <span className="hidden md:inline">{dict.nav.publishListing}</span>
           </Link>
         </div>
       </div>

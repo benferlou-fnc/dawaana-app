@@ -3,13 +3,15 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   LISTING_SELECT,
   LISTING_CATEGORIES,
-  LISTING_CATEGORY_LABEL,
   type Listing,
   type ListingCategory,
 } from "@/lib/types";
 import ListingCard from "@/components/ListingCard";
 import { WILAYAS } from "@/lib/wilayas";
 import { SearchIcon } from "@/components/icons";
+import { getLocale } from "@/lib/i18n/locale";
+import { getDictionary } from "@/lib/i18n/dictionary";
+import { wilayaLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -54,17 +56,16 @@ export default async function AnnoncesPage({
 }: {
   searchParams: { wilaya?: string; type?: string; categorie?: string; urgent?: string; q?: string };
 }) {
+  const locale = getLocale();
+  const dict = getDictionary(locale);
   const listings = await getListings(searchParams);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-11">
       <div className="mb-8">
-        <h1 className="font-display font-extrabold text-[28px]">
-          Demandes &amp; dons en cours
-        </h1>
+        <h1 className="font-display font-extrabold text-[28px]">{dict.annonces.title}</h1>
         <p className="text-brand-ink-soft text-sm mt-1">
-          {listings.length} annonce{listings.length !== 1 ? "s" : ""} active
-          {listings.length !== 1 ? "s" : ""}
+          {listings.length} {listings.length !== 1 ? dict.annonces.count_other : dict.annonces.count_one}
         </p>
       </div>
 
@@ -75,7 +76,7 @@ export default async function AnnoncesPage({
             type="text"
             name="q"
             defaultValue={searchParams.q ?? ""}
-            placeholder="Rechercher un produit (nom, DCI)…"
+            placeholder={dict.annonces.searchPlaceholder}
             className="flex-1 bg-transparent outline-none text-sm placeholder:text-brand-ink-faint"
           />
         </div>
@@ -84,10 +85,10 @@ export default async function AnnoncesPage({
           defaultValue={searchParams.wilaya ?? ""}
           className="h-11 px-4 rounded-xl border-[1.5px] border-brand-border bg-brand-surface text-sm text-brand-ink-soft"
         >
-          <option value="">Toutes les wilayas</option>
+          <option value="">{dict.annonces.allWilayas}</option>
           {WILAYAS.map((w) => (
             <option key={w} value={w}>
-              {w}
+              {wilayaLabel(w, locale)}
             </option>
           ))}
         </select>
@@ -96,19 +97,19 @@ export default async function AnnoncesPage({
           defaultValue={searchParams.type ?? ""}
           className="h-11 px-4 rounded-xl border-[1.5px] border-brand-border bg-brand-surface text-sm text-brand-ink-soft"
         >
-          <option value="">Demandes &amp; dons</option>
-          <option value="recherche">Demandes uniquement</option>
-          <option value="don">Dons uniquement</option>
+          <option value="">{dict.annonces.allTypes}</option>
+          <option value="recherche">{dict.annonces.requestsOnly}</option>
+          <option value="don">{dict.annonces.donationsOnly}</option>
         </select>
         <select
           name="categorie"
           defaultValue={searchParams.categorie ?? ""}
           className="h-11 px-4 rounded-xl border-[1.5px] border-brand-border bg-brand-surface text-sm text-brand-ink-soft"
         >
-          <option value="">Toutes les catégories</option>
+          <option value="">{dict.annonces.allCategories}</option>
           {LISTING_CATEGORIES.map((c) => (
             <option key={c} value={c}>
-              {LISTING_CATEGORY_LABEL[c]}
+              {dict.categories[c]}
             </option>
           ))}
         </select>
@@ -120,29 +121,28 @@ export default async function AnnoncesPage({
             defaultChecked={searchParams.urgent === "1"}
             className="accent-brand-coral"
           />
-          Urgent uniquement
+          {dict.annonces.urgentOnly}
         </label>
         <button
           type="submit"
           className="h-11 px-5 rounded-xl bg-brand-ink text-white text-sm font-display font-semibold"
         >
-          Filtrer
+          {dict.annonces.filter}
         </button>
       </form>
 
       {!isSupabaseConfigured ? (
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-8 text-center text-brand-ink-faint text-sm">
-          Connectez Supabase (variables d&apos;environnement) pour afficher
-          les annonces en direct.
+          {dict.annonces.notConfigured}
         </div>
       ) : listings.length === 0 ? (
         <div className="bg-brand-surface border border-brand-border rounded-2xl p-8 text-center text-brand-ink-faint text-sm">
-          Aucune annonce ne correspond à ces filtres pour le moment.
+          {dict.annonces.noResults}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {listings.map((l) => (
-            <ListingCard key={l.id} listing={l} />
+            <ListingCard key={l.id} listing={l} locale={locale} />
           ))}
         </div>
       )}

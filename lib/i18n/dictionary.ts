@@ -40,6 +40,10 @@ const fr = {
     verifiedTitle: "Identité confirmée par notre prestataire de vérification",
     notVerifiedTitle: "Cette personne n'a pas encore fait vérifier son identité",
   },
+  medicationBadge: {
+    verified: "Médicament contrôlé",
+    verifiedTitle: "Un pharmacien bénévole a contrôlé ce médicament (produit, dosage, péremption)",
+  },
   helpButton: {
     interestedDon: "Je suis intéressé(e) par ce don",
     canHelpRequest: "Je peux aider ce cas",
@@ -310,6 +314,7 @@ const fr = {
   account: {
     greeting: "Bonjour {name}",
     moderation: "Modération",
+    pharmacistAccess: "Contrôle médicament",
     signOut: "Se déconnecter",
     signingOut: "Déconnexion…",
     myListings: "Mes annonces",
@@ -370,6 +375,20 @@ const fr = {
     deleteRefused: "Suppression refusée.",
     unmarkVerified: "Retirer le badge",
     markVerified: "Marquer vérifié",
+    notConfigured: "Connectez Supabase pour activer les comptes.",
+  },
+  pharmacien: {
+    title: "Contrôle du médicament",
+    connectedAs: "Connecté en tant que {name}. Dons en ligne les plus récents.",
+    noteBody:
+      "Ce contrôle porte sur le médicament lui-même — bon produit, bon dosage, date de péremption encore valable — pas sur l'identité du donateur. Les deux badges sont indépendants.",
+    statToControl: "Dons à contrôler",
+    statControlled: "Dons contrôlés",
+    donsTitle: "Dons en ligne",
+    noDons: "Aucun don en ligne pour le moment.",
+    unmarkVerified: "Retirer le contrôle",
+    markVerified: "Marquer contrôlé",
+    actionRefused: "Action refusée.",
     notConfigured: "Connectez Supabase pour activer les comptes.",
   },
   confidentialite: {
@@ -473,6 +492,10 @@ const ar: typeof fr = {
   langSwitcher: {
     french: "Français",
     arabic: "العربية",
+  },
+  medicationBadge: {
+    verified: "الدواء مُراقَب",
+    verifiedTitle: "قام صيدلي متطوّع بمراقبة هذا الدواء (المنتج، الجرعة، تاريخ الصلاحية)",
   },
   verifiedBadge: {
     verified: "هوية موثّقة",
@@ -740,6 +763,7 @@ const ar: typeof fr = {
   account: {
     greeting: "مرحبًا {name}",
     moderation: "الإشراف",
+    pharmacistAccess: "مراقبة الدواء",
     signOut: "تسجيل الخروج",
     signingOut: "جارٍ تسجيل الخروج…",
     myListings: "إعلاناتي",
@@ -800,6 +824,20 @@ const ar: typeof fr = {
     deleteRefused: "تم رفض الحذف.",
     unmarkVerified: "سحب الشارة",
     markVerified: "وضع علامة موثّق",
+    notConfigured: "قم بربط Supabase لتفعيل الحسابات.",
+  },
+  pharmacien: {
+    title: "مراقبة الدواء",
+    connectedAs: "متصل باسم {name}. أحدث التبرعات المنشورة.",
+    noteBody:
+      "تخص هذه المراقبة الدواء نفسه — المنتج الصحيح، الجرعة الصحيحة، تاريخ صلاحية لا يزال ساريًا — وليس هوية المتبرّع. الشارتان مستقلتان تمامًا.",
+    statToControl: "تبرعات بانتظار المراقبة",
+    statControlled: "تبرعات تمت مراقبتها",
+    donsTitle: "التبرعات المنشورة",
+    noDons: "لا يوجد أي تبرع منشور حاليًا.",
+    unmarkVerified: "سحب المراقبة",
+    markVerified: "وضع علامة مُراقَب",
+    actionRefused: "تم رفض الإجراء.",
     notConfigured: "قم بربط Supabase لتفعيل الحسابات.",
   },
   confidentialite: {

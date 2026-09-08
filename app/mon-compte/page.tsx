@@ -7,7 +7,7 @@ import { formatDate, relativeTime } from "@/lib/relativeTime";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import SignOutButton from "@/components/SignOutButton";
 import { StatusActions, DeleteEverything } from "@/components/MyPublicationActions";
-import { ShieldIcon, PlusIcon, PlaneIcon } from "@/components/icons";
+import { ShieldIcon, PillIcon, PlusIcon, PlaneIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
@@ -86,6 +86,15 @@ export default async function MonComptePage() {
             >
               <ShieldIcon size={15} />
               {dict.account.moderation}
+            </Link>
+          )}
+          {profile.is_pharmacist && (
+            <Link
+              href="/pharmacien"
+              className="h-10 px-4 rounded-xl bg-brand-coral text-white text-sm font-semibold flex items-center gap-2 hover:brightness-95 transition"
+            >
+              <PillIcon size={15} />
+              {dict.account.pharmacistAccess}
             </Link>
           )}
           <SignOutButton

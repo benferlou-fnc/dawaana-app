@@ -45,6 +45,8 @@ export interface Profile {
   identity_verified: boolean;
   /** Attribué uniquement depuis la base — jamais modifiable par un membre. */
   is_admin?: boolean;
+  /** Attribué uniquement depuis la base — jamais modifiable par un membre. */
+  is_pharmacist?: boolean;
   created_at?: string;
 }
 
@@ -72,6 +74,8 @@ export interface Listing {
   arrival_date: string | null;
   consent_at: string | null;
   status: ListingStatus;
+  /** Posé uniquement par un pharmacien via une fonction dédiée — jamais par l'auteur. */
+  medication_verified: boolean;
   created_at: string;
   profiles?: JoinedProfile;
 }
@@ -114,6 +118,14 @@ export function displayName(
  */
 export function isVerified(item: Pick<Listing, "profiles">) {
   return Boolean(item.profiles?.identity_verified);
+}
+
+/**
+ * Le contrôle du médicament est une propriété de l'annonce elle-même (pas du
+ * profil) : un pharmacien contrôle un produit précis, pas la personne.
+ */
+export function isMedicationVerified(item: Pick<Listing, "medication_verified">) {
+  return Boolean(item.medication_verified);
 }
 
 /** Lieu du donateur, formaté « Lyon, France » / « France ». */

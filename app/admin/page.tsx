@@ -80,7 +80,7 @@ export default async function AdminPage({
       supabase.from("trips").select("*").order("travel_date", { ascending: false }).limit(100),
       supabase
         .from("profiles")
-        .select("id, first_name, identity_verified, is_admin, created_at")
+        .select("id, first_name, identity_verified, is_admin, is_pharmacist, created_at")
         .order("created_at", { ascending: false })
         .limit(100),
     ]);
@@ -270,6 +270,11 @@ export default async function AdminPage({
                       {m.is_admin && (
                         <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold bg-brand-ink text-white">
                           {dict.admin.adminBadge}
+                        </span>
+                      )}
+                      {m.is_pharmacist && (
+                        <span className="inline-flex items-center h-5 px-2 rounded-full text-[10px] font-bold bg-brand-coral text-white">
+                          {dict.account.pharmacistAccess}
                         </span>
                       )}
                     </div>

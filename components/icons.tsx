@@ -41,6 +41,15 @@ export function ShieldCheckIcon({ className, size = 18 }: IconProps) {
   );
 }
 
+export function PillIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <rect x="3" y="9" width="18" height="8" rx="4" transform="rotate(-45 12 13)" />
+      <path d="M9.5 9.5l4 4" />
+    </svg>
+  );
+}
+
 export function MapPinIcon({ className, size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>

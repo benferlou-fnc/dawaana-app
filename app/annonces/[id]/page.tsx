@@ -12,6 +12,7 @@ import {
 import { relativeTime, formatDate } from "@/lib/relativeTime";
 import HelpButton from "@/components/HelpButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
 import { MapPinIcon, ShieldIcon, GlobeIcon, TagIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
@@ -71,8 +72,11 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                       {displayName(listing)}
                     </span>
                   </p>
-                  <div className="mt-2">
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
                     <VerifiedBadge verified={isVerified(listing)} locale={locale} />
+                    {isDon && (
+                      <MedicationVerifiedBadge verified={listing.medication_verified} locale={locale} />
+                    )}
                   </div>
                 </div>
               </div>

@@ -91,6 +91,35 @@ invisible.
 - Aucune politique d'écriture ne permet de toucher aux publications d'autrui :
   toutes sont conditionnées à `auth.uid() = user_id`.
 
+## Contrôle du médicament par un pharmacien (`/pharmacien`)
+
+Le badge « identité vérifiée » atteste de la **personne**. Il ne dit rien sur
+le **médicament** lui-même — bon produit, bon dosage, date de péremption
+encore valable. C'est ce que ce second rôle couvre, indépendamment du
+premier.
+
+Un compte marqué pharmacien voit dans `/pharmacien` la liste des dons en
+ligne, et peut y poser ou retirer un badge « médicament contrôlé »
+(`components/MedicationVerifiedBadge.tsx`), affiché sur l'annonce à côté du
+badge d'identité. Comme pour `/admin`, la page répond « introuvable » à qui
+n'a pas ce rôle.
+
+### Désigner un pharmacien
+
+Impossible depuis le site, volontairement — même principe que pour
+`is_admin` :
+
+```sql
+update public.profiles set is_pharmacist = true
+where id = (select id from auth.users where email = 'adresse@exemple.com');
+```
+
+La colonne `listings.medication_verified` est interdite en écriture directe
+à tout le monde, auteur de l'annonce compris (migration
+`0006_pharmacien.sql` restreint désormais l'écriture sur `listings` à la
+seule colonne `status`) : seule la fonction `pharmacist_set_medication_verified`,
+qui revérifie elle-même le rôle de l'appelant, peut la modifier.
+
 ## Catégories d'annonces
 
 Une annonce ne porte plus uniquement sur un médicament : à la publication,
@@ -163,9 +192,9 @@ seul côté demandeur.
   `components/HelpButton.tsx`)
 - La vérification d'identité n'est pas branchée : aucun prestataire n'est
   connecté, le badge n'apparaît donc sur aucune annonce
-- Pas d'authentification ni de tableau de bord pour les pharmaciens
-  bénévoles — le réseau de bénévoles reste à constituer, et le site le dit
-  désormais explicitement plutôt que de le promettre
+- Le rôle pharmacien (`/pharmacien`) ne couvre que le contrôle du
+  médicament sur les dons déjà en ligne — pas encore de recrutement ni
+  d'annuaire des pharmaciens bénévoles ; le réseau reste à constituer
 - Pas de version arabe (RTL) de cette version codée — seule la maquette
   visuelle existe en arabe pour l'instant
 - Pas de modération automatique des annonces

@@ -8,6 +8,7 @@ import {
 import { relativeTime } from "@/lib/relativeTime";
 import { MapPinIcon, GlobeIcon, TagIcon } from "./icons";
 import VerifiedBadge from "./VerifiedBadge";
+import MedicationVerifiedBadge from "./MedicationVerifiedBadge";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
@@ -67,6 +68,7 @@ export default function ListingCard({ listing, locale }: { listing: Listing; loc
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-[13px] font-semibold">{displayName(listing)}</span>
         <VerifiedBadge verified={isVerified(listing)} locale={locale} />
+        {isDon && <MedicationVerifiedBadge verified={listing.medication_verified} locale={locale} />}
       </div>
 
       <div className="flex items-center gap-3.5 text-xs text-brand-ink-faint flex-wrap">

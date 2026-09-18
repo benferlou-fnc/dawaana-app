@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import type { Profile } from "@/lib/types";
+import type { Profile, Listing, ListingStatus } from "@/lib/types";
 import { WILAYAS } from "@/lib/wilayas";
 import { DIASPORA_COUNTRIES } from "@/lib/countries";
 import {
@@ -16,6 +16,8 @@ import {
   GlobeIcon,
   TagIcon,
   ArrowRightIcon,
+  CameraIcon,
+  PlusIcon,
 } from "@/components/icons";
 import {
   type ListingType,
@@ -27,29 +29,143 @@ import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
 
-export default function PublierForm({ locale }: { locale: Locale }) {
+const MAX_PRODUCT_PHOTOS = 3;
+const MAX_PHOTO_SIZE = 8 * 1024 * 1024; // 8 Mo
+
+async function uploadListingPhoto(
+  supabase: ReturnType<typeof createClient>,
+  userId: string,
+  file: File
+) {
+  const ext = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  const path = `${userId}/${crypto.randomUUID()}.${ext}`;
+  const { error } = await supabase.storage.from("listing-photos").upload(path, file, {
+    cacheControl: "3600",
+    upsert: false,
+  });
+  if (error) throw error;
+  const { data } = supabase.storage.from("listing-photos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+function SmallThumb({
+  src,
+  onRemove,
+  removeLabel,
+}: {
+  src: string;
+  onRemove: () => void;
+  removeLabel: string;
+}) {
+  return (
+    <div className="relative w-20 h-20 rounded-xl overflow-hidden border border-brand-border flex-none">
+      {/* Aperçus locaux (blob:) ou distants : une balise <img> simple évite toute config d'optimiseur d'image. */}
+      <img src={src} alt="" className="w-full h-full object-cover" />
+      <button
+        type="button"
+        onClick={onRemove}
+        aria-label={removeLabel}
+        className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/60 text-white text-xs leading-none flex items-center justify-center"
+      >
+        ×
+      </button>
+    </div>
+  );
+}
+
+function AddPhotoTile({
+  label,
+  multiple,
+  onChange,
+}: {
+  label: string;
+  multiple?: boolean;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+}) {
+  return (
+    <label className="w-20 h-20 rounded-xl border-[1.5px] border-dashed border-brand-border flex flex-col items-center justify-center gap-1 text-brand-ink-faint cursor-pointer hover:bg-brand-bg transition flex-none">
+      <PlusIcon size={16} />
+      <span className="text-[10px] font-semibold text-center px-1">{label}</span>
+      <input type="file" accept="image/*" multiple={multiple} onChange={onChange} className="hidden" />
+    </label>
+  );
+}
+
+export default function PublierForm({
+  locale,
+  mode = "create",
+  listing,
+}: {
+  locale: Locale;
+  mode?: "create" | "edit";
+  listing?: Listing;
+}) {
   const dict = getDictionary(locale);
   const router = useRouter();
-  const [type, setType] = useState<ListingType>("recherche");
+  const isEdit = mode === "edit" && Boolean(listing);
+
+  const [type] = useState<ListingType>(listing?.type ?? "recherche");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
-  const [category, setCategory] = useState<ListingCategory>("medicament");
-  const [medicationName, setMedicationName] = useState("");
-  const [dosage, setDosage] = useState("");
-  const [quantity, setQuantity] = useState("");
-  const [wilaya, setWilaya] = useState("");
-  const [urgency, setUrgency] = useState<Urgency>("normal");
-  const [expirationDate, setExpirationDate] = useState("");
-  const [arrivalDate, setArrivalDate] = useState("");
-  const [fromAbroad, setFromAbroad] = useState(false);
-  const [donorCountry, setDonorCountry] = useState("");
-  const [donorCity, setDonorCity] = useState("");
-  const [context, setContext] = useState("");
+  const [category, setCategory] = useState<ListingCategory>(listing?.category ?? "medicament");
+  const [medicationName, setMedicationName] = useState(listing?.medication_name ?? "");
+  const [dosage, setDosage] = useState(listing?.dosage ?? "");
+  const [quantity, setQuantity] = useState(listing?.quantity ?? "");
+  const [wilaya, setWilaya] = useState(listing?.wilaya ?? "");
+  const [urgency, setUrgency] = useState<Urgency>(listing?.urgency ?? "normal");
+  const [expirationDate, setExpirationDate] = useState(listing?.expiration_date ?? "");
+  const [arrivalDate, setArrivalDate] = useState(listing?.arrival_date ?? "");
+  const [fromAbroad, setFromAbroad] = useState(Boolean(listing?.donor_country));
+  const [donorCountry, setDonorCountry] = useState(listing?.donor_country ?? "");
+  const [donorCity, setDonorCity] = useState(listing?.donor_city ?? "");
+  const [context, setContext] = useState(listing?.context ?? "");
   const [consent, setConsent] = useState(false);
+  const [status, setStatus] = useState<ListingStatus>(listing?.status ?? "active");
   const [submitting, setSubmitting] = useState(false);
+  const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // Photos déjà en ligne (mode édition) — retirables sans re-téléversement.
+  const [existingPhotoUrls, setExistingPhotoUrls] = useState<string[]>(listing?.photo_urls ?? []);
+  const [existingExpirationPhotoUrl, setExistingExpirationPhotoUrl] = useState<string | null>(
+    listing?.expiration_photo_url ?? null
+  );
+  // Nouveaux fichiers choisis, pas encore téléversés.
+  const [productPhotos, setProductPhotos] = useState<File[]>([]);
+  const [expirationPhoto, setExpirationPhoto] = useState<File | null>(null);
+
   const isDon = type === "don";
+
+  const productPhotoPreviews = useMemo(
+    () => productPhotos.map((f) => URL.createObjectURL(f)),
+    [productPhotos]
+  );
+  const expirationPhotoPreview = useMemo(
+    () => (expirationPhoto ? URL.createObjectURL(expirationPhoto) : null),
+    [expirationPhoto]
+  );
+  const totalProductPhotos = existingPhotoUrls.length + productPhotos.length;
+
+  function handleProductPhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    e.target.value = "";
+    if (files.some((f) => f.size > MAX_PHOTO_SIZE)) {
+      setErrorMsg(dict.publier.photoTooLarge);
+    }
+    const room = MAX_PRODUCT_PHOTOS - totalProductPhotos;
+    const accepted = files.filter((f) => f.size <= MAX_PHOTO_SIZE).slice(0, Math.max(room, 0));
+    setProductPhotos((prev) => [...prev, ...accepted]);
+  }
+
+  function handleExpirationPhotoChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (file && file.size > MAX_PHOTO_SIZE) {
+      setErrorMsg(dict.publier.photoTooLarge);
+      return;
+    }
+    setExpirationPhoto(file);
+  }
 
   // Une publication doit appartenir à quelqu'un : sans compte, son auteur ne
   // pourrait plus jamais la retirer.
@@ -86,7 +202,7 @@ export default function PublierForm({ locale }: { locale: Locale }) {
       setErrorMsg(dict.publier.errorMissingFields);
       return;
     }
-    if (!consent) {
+    if (!isEdit && !consent) {
       setErrorMsg(dict.publier.errorConsent);
       return;
     }
@@ -96,25 +212,80 @@ export default function PublierForm({ locale }: { locale: Locale }) {
     }
 
     const abroad = isDon && fromAbroad;
+    const supabase = createClient();
 
     setSubmitting(true);
-    const { data, error } = await createClient()
+
+    let newPhotoUrls: string[] = [];
+    let newExpirationPhotoUrl: string | null = null;
+    if (isDon && (productPhotos.length > 0 || expirationPhoto)) {
+      setUploadingPhotos(true);
+      try {
+        newPhotoUrls = await Promise.all(
+          productPhotos.map((f) => uploadListingPhoto(supabase, profile.id, f))
+        );
+        if (expirationPhoto) {
+          newExpirationPhotoUrl = await uploadListingPhoto(supabase, profile.id, expirationPhoto);
+        }
+      } catch (err) {
+        setUploadingPhotos(false);
+        setSubmitting(false);
+        setErrorMsg(dict.publier.errorPhotoUpload);
+        console.error(err);
+        return;
+      }
+      setUploadingPhotos(false);
+    }
+
+    const finalPhotoUrls = isDon
+      ? [...existingPhotoUrls, ...newPhotoUrls].slice(0, MAX_PRODUCT_PHOTOS)
+      : [];
+    const finalExpirationPhotoUrl = isDon
+      ? newExpirationPhotoUrl ?? existingExpirationPhotoUrl
+      : null;
+
+    const payload = {
+      category,
+      medication_name: medicationName.trim(),
+      dosage: dosage.trim() || null,
+      quantity: quantity.trim() || null,
+      wilaya,
+      urgency: isDon ? "normal" : urgency,
+      context: context.trim() || null,
+      donor_country: abroad && donorCountry ? donorCountry : null,
+      donor_city: abroad && donorCity.trim() ? donorCity.trim() : null,
+      expiration_date: isDon && expirationDate ? expirationDate : null,
+      arrival_date: abroad && arrivalDate ? arrivalDate : null,
+      photo_urls: finalPhotoUrls,
+      expiration_photo_url: finalExpirationPhotoUrl,
+    };
+
+    if (isEdit && listing) {
+      const { error } = await supabase
+        .from("listings")
+        .update({ ...payload, status })
+        .eq("id", listing.id);
+
+      setSubmitting(false);
+
+      if (error) {
+        setErrorMsg(dict.editListing.errorUpdateFailed);
+        console.error(error);
+        return;
+      }
+
+      router.refresh();
+      router.push(`/annonces/${listing.id}`);
+      return;
+    }
+
+    const { data, error } = await supabase
       .from("listings")
       .insert({
         user_id: profile.id,
         type,
-        category,
-        medication_name: medicationName.trim(),
-        dosage: dosage.trim() || null,
-        quantity: quantity.trim() || null,
-        wilaya,
-        urgency: isDon ? "normal" : urgency,
-        context: context.trim() || null,
+        ...payload,
         first_name: profile.first_name,
-        donor_country: abroad && donorCountry ? donorCountry : null,
-        donor_city: abroad && donorCity.trim() ? donorCity.trim() : null,
-        expiration_date: isDon && expirationDate ? expirationDate : null,
-        arrival_date: abroad && arrivalDate ? arrivalDate : null,
         consent_at: new Date().toISOString(),
         status: "active",
       })
@@ -167,35 +338,54 @@ export default function PublierForm({ locale }: { locale: Locale }) {
     );
   }
 
+  const busy = submitting || uploadingPhotos;
+
   return (
     <div className="max-w-3xl mx-auto px-6 py-14">
       <div className="mb-7">
-        <h1 className="font-display font-extrabold text-[28px]">{dict.publier.title}</h1>
-        <p className="text-brand-ink-soft text-sm mt-1">{dict.publier.subtitle}</p>
+        <h1 className="font-display font-extrabold text-[28px]">
+          {isEdit ? dict.editListing.title : dict.publier.title}
+        </h1>
+        <p className="text-brand-ink-soft text-sm mt-1">
+          {isEdit ? dict.editListing.subtitle : dict.publier.subtitle}
+        </p>
       </div>
 
-      <div className="flex gap-2.5 p-1.5 bg-brand-surface border-[1.5px] border-brand-border rounded-2xl mb-7">
-        <button
-          type="button"
-          onClick={() => setType("recherche")}
-          className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
-            type === "recherche" ? "bg-brand-coral text-white" : "text-brand-ink-soft"
-          }`}
-        >
-          <SearchIcon size={17} />
-          {dict.publier.tabSearch}
-        </button>
-        <button
-          type="button"
-          onClick={() => setType("don")}
-          className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
-            isDon ? "bg-brand-green-dark text-white" : "text-brand-ink-soft"
-          }`}
-        >
-          <GiftIcon size={17} />
-          {dict.publier.tabDonate}
-        </button>
-      </div>
+      {isEdit ? (
+        <div className="flex gap-2.5 p-1.5 bg-brand-surface border-[1.5px] border-brand-border rounded-2xl mb-7">
+          <div
+            className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm ${
+              isDon ? "bg-brand-green-dark text-white" : "bg-brand-coral text-white"
+            }`}
+          >
+            {isDon ? <GiftIcon size={17} /> : <SearchIcon size={17} />}
+            {isDon ? dict.publier.tabDonate : dict.publier.tabSearch}
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2.5 p-1.5 bg-brand-surface border-[1.5px] border-brand-border rounded-2xl mb-7">
+          <button
+            type="button"
+            disabled
+            className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
+              type === "recherche" ? "bg-brand-coral text-white" : "text-brand-ink-soft"
+            }`}
+          >
+            <SearchIcon size={17} />
+            {dict.publier.tabSearch}
+          </button>
+          <button
+            type="button"
+            disabled
+            className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
+              isDon ? "bg-brand-green-dark text-white" : "text-brand-ink-soft"
+            }`}
+          >
+            <GiftIcon size={17} />
+            {dict.publier.tabDonate}
+          </button>
+        </div>
+      )}
 
       <form
         onSubmit={handleSubmit}
@@ -382,6 +572,68 @@ export default function PublierForm({ locale }: { locale: Locale }) {
           </div>
         )}
 
+        {isDon && (
+          <div className="rounded-2xl border-[1.5px] border-dashed border-brand-border px-5 py-4.5 flex flex-col gap-4">
+            <div className="flex items-center gap-2 text-[13.5px] font-bold">
+              <CameraIcon size={17} />
+              {dict.publier.photosTitle}
+            </div>
+            <p className="text-xs text-brand-ink-faint -mt-2.5">{dict.publier.photosHelp}</p>
+
+            <div>
+              <label className="block text-[13.5px] font-semibold mb-2">
+                {dict.publier.productPhotos}{" "}
+                <span className="text-brand-ink-faint font-normal">{dict.publier.photosOptional}</span>
+              </label>
+              <div className="flex flex-wrap gap-3">
+                {existingPhotoUrls.map((url, i) => (
+                  <SmallThumb
+                    key={`existing-${url}`}
+                    src={url}
+                    removeLabel={dict.publier.removePhoto}
+                    onRemove={() => setExistingPhotoUrls((prev) => prev.filter((_, j) => j !== i))}
+                  />
+                ))}
+                {productPhotoPreviews.map((url, i) => (
+                  <SmallThumb
+                    key={`new-${i}`}
+                    src={url}
+                    removeLabel={dict.publier.removePhoto}
+                    onRemove={() => setProductPhotos((prev) => prev.filter((_, j) => j !== i))}
+                  />
+                ))}
+                {totalProductPhotos < MAX_PRODUCT_PHOTOS && (
+                  <AddPhotoTile label={dict.publier.addPhoto} multiple onChange={handleProductPhotosChange} />
+                )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[13.5px] font-semibold mb-2">
+                {dict.publier.expirationPhoto}{" "}
+                <span className="text-brand-ink-faint font-normal">{dict.publier.photosOptional}</span>
+              </label>
+              <div className="flex gap-3">
+                {expirationPhotoPreview ? (
+                  <SmallThumb
+                    src={expirationPhotoPreview}
+                    removeLabel={dict.publier.removePhoto}
+                    onRemove={() => setExpirationPhoto(null)}
+                  />
+                ) : existingExpirationPhotoUrl ? (
+                  <SmallThumb
+                    src={existingExpirationPhotoUrl}
+                    removeLabel={dict.publier.removePhoto}
+                    onRemove={() => setExistingExpirationPhotoUrl(null)}
+                  />
+                ) : (
+                  <AddPhotoTile label={dict.publier.addPhoto} onChange={handleExpirationPhotoChange} />
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         <div>
           <label className="block text-[13.5px] font-semibold mb-2">{dict.publier.context}</label>
           <textarea
@@ -393,20 +645,37 @@ export default function PublierForm({ locale }: { locale: Locale }) {
           />
         </div>
 
-        <label className="flex gap-3 px-4 py-3.5 bg-brand-bg rounded-xl cursor-pointer">
-          <input
-            type="checkbox"
-            checked={consent}
-            onChange={(e) => setConsent(e.target.checked)}
-            className="accent-brand-green-dark mt-0.5 flex-none"
-          />
-          <span className="text-xs text-brand-ink-soft leading-relaxed">
-            {dict.publier.consentLabel}{" "}
-            <Link href="/confidentialite" className="underline underline-offset-2">
-              {dict.publier.dataInfoLink}
-            </Link>
-          </span>
-        </label>
+        {isEdit && (
+          <div>
+            <label className="block text-[13.5px] font-semibold mb-2">{dict.editListing.statusLabel}</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ListingStatus)}
+              className={field}
+            >
+              <option value="active">{dict.listingStatus.active}</option>
+              <option value="resolue">{dict.listingStatus.resolue}</option>
+              <option value="retiree">{dict.listingStatus.retiree}</option>
+            </select>
+          </div>
+        )}
+
+        {!isEdit && (
+          <label className="flex gap-3 px-4 py-3.5 bg-brand-bg rounded-xl cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consent}
+              onChange={(e) => setConsent(e.target.checked)}
+              className="accent-brand-green-dark mt-0.5 flex-none"
+            />
+            <span className="text-xs text-brand-ink-soft leading-relaxed">
+              {dict.publier.consentLabel}{" "}
+              <Link href="/confidentialite" className="underline underline-offset-2">
+                {dict.publier.dataInfoLink}
+              </Link>
+            </span>
+          </label>
+        )}
 
         <div className="flex gap-3 px-4 py-4 border-[1.5px] border-dashed border-brand-border rounded-xl">
           <ShieldIcon size={18} className="text-brand-ink-faint flex-none mt-0.5" />
@@ -419,14 +688,34 @@ export default function PublierForm({ locale }: { locale: Locale }) {
           </div>
         )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          className="w-full h-[54px] rounded-xl bg-brand-coral text-white font-display font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-60"
-        >
-          {submitting ? dict.publier.submitting : isDon ? dict.publier.submitDonate : dict.publier.submitRequest}
-          {!submitting && <ArrowRightIcon className="rtl:-scale-x-100" />}
-        </button>
+        <div className="flex gap-3">
+          {isEdit && listing && (
+            <Link
+              href={`/annonces/${listing.id}`}
+              className="h-[54px] px-6 rounded-xl border border-brand-border font-display font-semibold text-sm flex items-center justify-center"
+            >
+              {dict.editListing.cancel}
+            </Link>
+          )}
+          <button
+            type="submit"
+            disabled={busy}
+            className="flex-1 h-[54px] rounded-xl bg-brand-coral text-white font-display font-semibold text-base flex items-center justify-center gap-2 disabled:opacity-60"
+          >
+            {uploadingPhotos
+              ? dict.publier.uploadingPhotos
+              : submitting
+              ? isEdit
+                ? dict.editListing.saving
+                : dict.publier.submitting
+              : isEdit
+              ? dict.editListing.save
+              : isDon
+              ? dict.publier.submitDonate
+              : dict.publier.submitRequest}
+            {!busy && <ArrowRightIcon className="rtl:-scale-x-100" />}
+          </button>
+        </div>
       </form>
     </div>
   );

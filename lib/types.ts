@@ -76,6 +76,10 @@ export interface Listing {
   status: ListingStatus;
   /** Posé uniquement par un pharmacien via une fonction dédiée — jamais par l'auteur. */
   medication_verified: boolean;
+  /** Jusqu'à 3 photos du produit (boîte, comprimés…), facultatives. */
+  photo_urls: string[];
+  /** Photo de la date de péremption, facultative. */
+  expiration_photo_url: string | null;
   created_at: string;
   profiles?: JoinedProfile;
 }

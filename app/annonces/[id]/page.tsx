@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   displayName,
@@ -13,7 +13,7 @@ import { relativeTime, formatDate } from "@/lib/relativeTime";
 import HelpButton from "@/components/HelpButton";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
-import { MapPinIcon, ShieldIcon, GlobeIcon, TagIcon } from "@/components/icons";
+import { MapPinIcon, ShieldIcon, GlobeIcon, TagIcon, PencilIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
@@ -38,14 +38,29 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const listing = await getListing(params.id);
   if (!listing) notFound();
 
+  const me = await getCurrentProfile();
+  const canEdit = Boolean(me) && (me!.id === listing.user_id || me!.is_admin);
+
   const isDon = listing.type === "don";
   const location = donorLocation(listing);
+  const hasPhotos = isDon && (listing.photo_urls?.length > 0 || listing.expiration_photo_url);
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      <Link href="/annonces" className="text-[13.5px] text-brand-ink-faint font-medium mb-6 inline-block">
-        {dict.annonceDetail.back}
-      </Link>
+      <div className="flex items-center justify-between gap-3 mb-6">
+        <Link href="/annonces" className="text-[13.5px] text-brand-ink-faint font-medium">
+          {dict.annonceDetail.back}
+        </Link>
+        {canEdit && (
+          <Link
+            href={`/annonces/${listing.id}/modifier`}
+            className="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-brand-ink-soft hover:text-brand-ink"
+          >
+            <PencilIcon size={14} />
+            {dict.account.editListing}
+          </Link>
+        )}
+      </div>
 
       <div className="flex flex-col lg:flex-row gap-9 items-start">
         <div className="flex-1 flex flex-col gap-6 w-full">
@@ -136,6 +151,42 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               </div>
             )}
           </div>
+
+          {hasPhotos && (
+            <div className="bg-brand-surface border border-brand-border rounded-2xl p-7 flex flex-col gap-5">
+              {listing.photo_urls?.length > 0 && (
+                <div>
+                  <div className="text-xs text-brand-ink-faint mb-2">{dict.annonceDetail.productPhotosTitle}</div>
+                  <div className="flex flex-wrap gap-3">
+                    {listing.photo_urls.map((url) => (
+                      <a
+                        key={url}
+                        href={url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="w-24 h-24 rounded-xl overflow-hidden border border-brand-border block"
+                      >
+                        <img src={url} alt="" className="w-full h-full object-cover" />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {listing.expiration_photo_url && (
+                <div>
+                  <div className="text-xs text-brand-ink-faint mb-2">{dict.annonceDetail.expirationPhotoTitle}</div>
+                  <a
+                    href={listing.expiration_photo_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="w-24 h-24 rounded-xl overflow-hidden border border-brand-border block"
+                  >
+                    <img src={listing.expiration_photo_url} alt="" className="w-full h-full object-cover" />
+                  </a>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="bg-brand-surface border-[1.5px] border-dashed border-brand-border rounded-2xl px-9 py-7 flex items-start gap-4">
             <div className="w-10 h-10 rounded-xl bg-brand-bg flex items-center justify-center flex-none text-brand-ink-soft">

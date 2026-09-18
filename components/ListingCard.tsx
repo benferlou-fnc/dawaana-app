@@ -59,6 +59,19 @@ export default function ListingCard({ listing, locale }: { listing: Listing; loc
         </div>
       </div>
 
+      {listing.photo_urls?.length > 0 && (
+        <div className="flex gap-2">
+          {listing.photo_urls.slice(0, 3).map((url) => (
+            <img
+              key={url}
+              src={url}
+              alt=""
+              className="w-14 h-14 rounded-lg object-cover border border-brand-border"
+            />
+          ))}
+        </div>
+      )}
+
       {listing.context && (
         <p className="text-[12.5px] italic text-brand-ink-soft leading-relaxed line-clamp-2">
           « {listing.context} »

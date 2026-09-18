@@ -133,6 +133,44 @@ export default async function PharmacienPage() {
                       )}
                     </div>
                   </div>
+
+                  {(l.photo_urls?.length > 0 || l.expiration_photo_url) && (
+                    <div className="flex flex-wrap gap-4 pt-1">
+                      {l.photo_urls?.length > 0 && (
+                        <div>
+                          <div className="text-[10.5px] text-brand-ink-faint mb-1.5">
+                            {dict.annonceDetail.productPhotosTitle}
+                          </div>
+                          <div className="flex gap-2">
+                            {l.photo_urls.map((url) => (
+                              <a key={url} href={url} target="_blank" rel="noreferrer" className="block">
+                                <img
+                                  src={url}
+                                  alt=""
+                                  className="w-16 h-16 rounded-lg object-cover border border-brand-border"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {l.expiration_photo_url && (
+                        <div>
+                          <div className="text-[10.5px] text-brand-ink-faint mb-1.5">
+                            {dict.annonceDetail.expirationPhotoTitle}
+                          </div>
+                          <a href={l.expiration_photo_url} target="_blank" rel="noreferrer" className="block">
+                            <img
+                              src={l.expiration_photo_url}
+                              alt=""
+                              className="w-16 h-16 rounded-lg object-cover border border-brand-border"
+                            />
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   <PharmacistActions listingId={l.id} verified={l.medication_verified} locale={locale} />
                 </div>
               );

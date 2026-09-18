@@ -128,6 +128,24 @@ export function TagIcon({ className, size = 14 }: IconProps) {
   );
 }
 
+export function CameraIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <path d="M4 8h3l2-2h6l2 2h3a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1V9a1 1 0 011-1z" />
+      <circle cx="12" cy="13" r="3.5" />
+    </svg>
+  );
+}
+
+export function PencilIcon({ className, size = 16 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <path d="M4 20l1-4.4L15.6 5c.8-.8 2-.8 2.8 0l.6.6c.8.8.8 2 0 2.8L8.4 19 4 20z" />
+      <path d="M13.5 6.5l4 4" />
+    </svg>
+  );
+}
+
 export function BadgeCheckIcon({ className, size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>

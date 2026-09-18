@@ -7,7 +7,7 @@ import { formatDate, relativeTime } from "@/lib/relativeTime";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import SignOutButton from "@/components/SignOutButton";
 import { StatusActions, DeleteEverything } from "@/components/MyPublicationActions";
-import { ShieldIcon, PillIcon, PlusIcon, PlaneIcon } from "@/components/icons";
+import { ShieldIcon, PillIcon, PlusIcon, PlaneIcon, PencilIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
@@ -142,7 +142,16 @@ export default async function MonComptePage() {
                   </div>
                   <StatusPill label={dict.listingStatus[l.status]} active={l.status === "active"} />
                 </div>
-                <StatusActions table="listings" id={l.id} status={l.status} locale={locale} />
+                <div className="flex flex-wrap items-center gap-2">
+                  <StatusActions table="listings" id={l.id} status={l.status} locale={locale} />
+                  <Link
+                    href={`/annonces/${l.id}/modifier`}
+                    className="h-9 px-3.5 rounded-lg text-xs font-semibold border border-brand-border hover:bg-brand-bg transition inline-flex items-center gap-1.5"
+                  >
+                    <PencilIcon size={13} />
+                    {dict.account.editListing}
+                  </Link>
+                </div>
               </div>
             ))}
           </div>

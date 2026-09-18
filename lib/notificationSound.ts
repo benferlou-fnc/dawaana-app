@@ -1,13 +1,16 @@
 /**
- * Petit son de notification, généré directement en JS (pas de fichier audio
- * à héberger) : deux notes courtes façon « ding ». Certains navigateurs
- * bloquent l'audio tant que la page n'a reçu aucune interaction — dans ce
- * cas le son ne joue simplement pas au tout premier chargement, sans erreur
- * visible. Préférence de coupure du son mémorisée par appareil
- * (localStorage), pas synchronisée entre appareils.
+ * Son de notification — fichier audio fourni (`public/sounds/notification-
+ * success.wav`), joué via un simple élément `<audio>`. Les navigateurs
+ * bloquent la lecture tant que la page n'a reçu aucune interaction : c'est
+ * pour ça qu'on « débloque » l'élément dès le premier geste utilisateur
+ * (voir `ensureAudioUnlocked`) — sans ça, le son déclenché plus tard par le
+ * sondage automatique de la cloche serait ignoré silencieusement. Préférence
+ * de coupure du son mémorisée par appareil (localStorage), pas synchronisée
+ * entre appareils.
  */
 
 const MUTE_KEY = "dawaana_notif_muted";
+const SOUND_SRC = "/sounds/notification-success.wav";
 
 export function isNotificationSoundMuted(): boolean {
   if (typeof window === "undefined") return false;
@@ -27,59 +30,52 @@ export function setNotificationSoundMuted(muted: boolean) {
   }
 }
 
-let sharedContext: AudioContext | null = null;
+let sharedAudio: HTMLAudioElement | null = null;
 
-function getContext(): AudioContext | null {
+function getAudio(): HTMLAudioElement | null {
   if (typeof window === "undefined") return null;
-  const Ctor = window.AudioContext || (window as unknown as { webkitAudioContext?: typeof AudioContext })
-    .webkitAudioContext;
-  if (!Ctor) return null;
-  if (!sharedContext) sharedContext = new Ctor();
-  return sharedContext;
+  if (!sharedAudio) {
+    sharedAudio = new Audio(SOUND_SRC);
+    sharedAudio.preload = "auto";
+    sharedAudio.volume = 0.6;
+  }
+  return sharedAudio;
 }
 
 /**
  * À appeler depuis un vrai geste utilisateur (clic, touche) tôt dans la
- * session. Les navigateurs bloquent la lecture audio tant qu'aucune
- * interaction n'a eu lieu, et ignorent silencieusement un `resume()` appelé
- * en dehors d'un geste (aucune erreur, mais aucun son non plus) — c'est ce
- * qui empêchait le son de jouer : le sondage automatique de la cloche
- * (`setInterval`) n'est pas un geste. Une fois débloqué ici, le contexte
- * reste utilisable pour le reste de la session, y compris depuis un
- * déclenchement automatique plus tard.
+ * session : joue puis coupe immédiatement l'élément audio, ce qui suffit à
+ * satisfaire la politique d'autoplay du navigateur pour le reste de la
+ * session — y compris pour un déclenchement automatique plus tard (le
+ * sondage périodique de la cloche n'est pas un geste).
  */
 export function ensureAudioUnlocked() {
-  const ctx = getContext();
-  if (ctx && ctx.state === "suspended") {
-    ctx.resume().catch(() => {});
+  const audio = getAudio();
+  if (!audio) return;
+  const played = audio.play();
+  if (played && typeof played.then === "function") {
+    played
+      .then(() => {
+        audio.pause();
+        audio.currentTime = 0;
+      })
+      .catch(() => {
+        // Toujours bloqué à ce stade (pas encore de vrai geste) — pas grave,
+        // on retentera à la prochaine interaction.
+      });
   }
 }
 
 export function playNotificationSound() {
   if (isNotificationSoundMuted()) return;
-  const ctx = getContext();
-  if (!ctx) return;
+  const audio = getAudio();
+  if (!audio) return;
   try {
-    if (ctx.state === "suspended") ctx.resume().catch(() => {});
-    const now = ctx.currentTime;
-    const notes: Array<[number, number]> = [
-      [880, now],
-      [1318.5, now + 0.09],
-    ];
-    for (const [freq, start] of notes) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = "sine";
-      osc.frequency.value = freq;
-      gain.gain.setValueAtTime(0, start);
-      gain.gain.linearRampToValueAtTime(0.16, start + 0.015);
-      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.22);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(start);
-      osc.stop(start + 0.24);
-    }
+    audio.currentTime = 0;
+    audio.play().catch(() => {
+      // Lecture bloquée (autoplay, appareil en silencieux…) — silencieux.
+    });
   } catch {
-    // Lecture impossible (politique d'autoplay, contexte fermé…) — silencieux.
+    // Idem.
   }
 }

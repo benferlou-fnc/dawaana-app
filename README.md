@@ -166,11 +166,14 @@ Une cloche dans l'en-tête (`components/NotificationBell.tsx`, visible une
 fois connecté) affiche les notifications de l'utilisateur — in-app
 uniquement, pas d'e-mail. Trois événements les déclenchent :
 
-1. **Quelqu'un clique « Je peux aider »** sur une annonce
-   (`components/HelpButton.tsx`) — l'auteur de l'annonce est notifié. Il
+1. **Quelqu'un clique « Je suis intéressé(e) » / « Je peux aider »** sur une
+   annonce (`components/ConversationSection.tsx`) — l'auteur de l'annonce
+   est notifié, et une conversation est créée (voir section suivante). Il
    faut être connecté pour proposer son aide (sinon le bouton devient un
    lien vers `/connexion`), et on ne peut pas se notifier soi-même sur sa
-   propre annonce.
+   propre annonce. L'auteur qui accepte ou décline une proposition, et
+   chaque nouveau message échangé, déclenchent aussi une notification pour
+   l'autre participant.
 2. **Un badge est posé** — identité vérifiée par un administrateur
    (`admin_set_verified`) ou médicament contrôlé par un pharmacien
    (`pharmacist_set_medication_verified`) : ces deux fonctions, déjà
@@ -192,6 +195,44 @@ Comme pour les photos, aucune policy `insert` n'est posée sur
 pour un autre membre depuis le client. Seule la colonne `read_at` est
 modifiable côté client (`grant update (read_at)`), pour marquer une
 notification comme lue.
+
+## Messagerie de mise en relation (`migration 0010_messagerie.sql`)
+
+Le bouton « Je suis intéressé(e) par ce don » / « Je peux aider ce cas »
+ouvre une vraie conversation, directement sur la fiche annonce
+(`components/ConversationSection.tsx`) — pas de page `/messages` séparée.
+Choix explicite pour cette version : **l'auteur de l'annonce doit d'abord
+accepter une proposition** avant que la messagerie s'ouvre (ça filtre le
+spam et laisse le contrôle à l'auteur).
+
+Déroulé :
+
+1. Un visiteur connecté clique sur le bouton → `express_interest(listing_id)`
+   crée une conversation `pending` (une seule par personne et par annonce,
+   contrainte `unique (listing_id, requester_id)` — un deuxième clic ne
+   duplique rien) et notifie l'auteur.
+2. L'auteur voit la proposition apparaître dans le même bloc de sa propre
+   fiche annonce, avec les boutons Accepter / Décliner →
+   `respond_to_interest(conversation_id, accept)` change le statut
+   (`accepted` ou `declined`) et notifie la personne intéressée. Une fois
+   la réponse donnée, elle est définitive côté client (aucune policy
+   `update` n'existe sur `conversations` — tout passe par cette fonction).
+3. Si acceptée, un fil de discussion s'affiche pour les deux participants
+   (`send_message(conversation_id, body)`), avec notification à chaque
+   nouveau message. Comme le reste du site, pas de temps réel : le fil se
+   relit toutes les 10 secondes (`components/ConversationSection.tsx`,
+   `MessageThread`), avec un affichage optimiste du message envoyé en
+   attendant.
+
+Les deux tables (`conversations`, `messages`) suivent le même principe de
+sécurité que `notifications` : RLS en lecture seule pour les participants
+(`auth.uid() = owner_id or auth.uid() = requester_id`, et via `EXISTS` sur
+`conversations` pour les messages), et **aucune policy `insert`/`update`** —
+tout passe par les trois fonctions `SECURITY DEFINER` ci-dessus, qui
+revérifient elles-mêmes qui est l'auteur, qui est le participant, et que la
+conversation est bien acceptée avant d'autoriser un message. Toujours aucune
+coordonnée personnelle échangée automatiquement : les deux parties ne se
+voient que par leur prénom.
 
 ## Catégories d'annonces
 

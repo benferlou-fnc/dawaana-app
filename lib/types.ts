@@ -155,7 +155,10 @@ export type NotificationType =
   | "interest"
   | "identity_verified"
   | "medication_verified"
-  | "listing_moderated";
+  | "listing_moderated"
+  | "interest_accepted"
+  | "interest_declined"
+  | "message";
 
 /** Notification in-app. `data` porte tout le nécessaire à l'affichage, figé
  * au moment de l'événement (indépendant d'une modification ultérieure). */
@@ -171,5 +174,30 @@ export interface AppNotification {
     new_status?: ListingStatus;
   };
   read_at: string | null;
+  created_at: string;
+}
+
+export type ConversationStatus = "pending" | "accepted" | "declined";
+
+/** Conversation entre l'auteur d'une annonce et une personne intéressée —
+ * une par (annonce, personne), l'auteur doit l'accepter avant que le fil de
+ * discussion s'ouvre. */
+export interface Conversation {
+  id: string;
+  listing_id: string;
+  owner_id: string;
+  requester_id: string;
+  status: ConversationStatus;
+  created_at: string;
+  responded_at: string | null;
+  /** Prénom de l'autre participant, résolu côté serveur pour l'affichage. */
+  other_first_name?: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  body: string;
   created_at: string;
 }

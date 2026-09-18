@@ -7,10 +7,12 @@ import {
   donorLocation,
   isVerified,
   LISTING_SELECT,
+  type ChatMessage,
+  type Conversation,
   type Listing,
 } from "@/lib/types";
 import { relativeTime, formatDate } from "@/lib/relativeTime";
-import HelpButton from "@/components/HelpButton";
+import ConversationSection from "@/components/ConversationSection";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
 import { MapPinIcon, ShieldIcon, GlobeIcon, TagIcon, PencilIcon } from "@/components/icons";
@@ -32,6 +34,57 @@ async function getListing(id: string): Promise<Listing | null> {
   return data as unknown as Listing;
 }
 
+type ConversationRow = Conversation & {
+  owner: { first_name: string } | null;
+  requester: { first_name: string } | null;
+};
+
+/**
+ * Conversations de cette annonce visibles par l'utilisateur courant (RLS :
+ * uniquement celles où il est l'auteur ou la personne intéressée), avec le
+ * prénom de l'autre participant déjà résolu — et les messages des
+ * conversations acceptées, groupés par conversation.
+ */
+async function getConversationData(listingId: string, meId: string | null) {
+  if (!meId) return { conversations: [] as Conversation[], messages: {} as Record<string, ChatMessage[]> };
+
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("conversations")
+    .select(
+      "*, owner:profiles!conversations_owner_id_fkey(first_name), requester:profiles!conversations_requester_id_fkey(first_name)"
+    )
+    .eq("listing_id", listingId)
+    .order("created_at", { ascending: true });
+
+  const rows = (data as unknown as ConversationRow[]) ?? [];
+  const conversations: Conversation[] = rows.map((c) => ({
+    id: c.id,
+    listing_id: c.listing_id,
+    owner_id: c.owner_id,
+    requester_id: c.requester_id,
+    status: c.status,
+    created_at: c.created_at,
+    responded_at: c.responded_at,
+    other_first_name: (c.owner_id === meId ? c.requester?.first_name : c.owner?.first_name) || undefined,
+  }));
+
+  const acceptedIds = conversations.filter((c) => c.status === "accepted").map((c) => c.id);
+  const messages: Record<string, ChatMessage[]> = {};
+  if (acceptedIds.length > 0) {
+    const { data: msgRows } = await supabase
+      .from("messages")
+      .select("*")
+      .in("conversation_id", acceptedIds)
+      .order("created_at", { ascending: true });
+    for (const m of (msgRows as ChatMessage[]) ?? []) {
+      (messages[m.conversation_id] ??= []).push(m);
+    }
+  }
+
+  return { conversations, messages };
+}
+
 export default async function ListingDetailPage({ params }: { params: { id: string } }) {
   const locale = getLocale();
   const dict = getDictionary(locale);
@@ -41,6 +94,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const me = await getCurrentProfile();
   const isOwner = Boolean(me) && me!.id === listing.user_id;
   const canEdit = isOwner || Boolean(me?.is_admin);
+  const { conversations, messages } = await getConversationData(listing.id, me?.id ?? null);
 
   const isDon = listing.type === "don";
   const location = donorLocation(listing);
@@ -221,13 +275,16 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               </div>
               <p className="text-[13.5px] text-brand-ink-soft leading-relaxed">{dict.annonceDetail.step3}</p>
             </div>
-            {isOwner ? (
-              <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">
-                {dict.annonceDetail.ownListingNote}
-              </p>
-            ) : (
-              <HelpButton listingId={listing.id} listingType={listing.type} locale={locale} />
-            )}
+            <ConversationSection
+              listingId={listing.id}
+              listingType={listing.type}
+              locale={locale}
+              loggedIn={Boolean(me)}
+              isOwner={isOwner}
+              meId={me?.id ?? null}
+              conversations={conversations}
+              initialMessages={messages}
+            />
             <p className="text-[11.5px] text-brand-ink-faint text-center">{dict.annonceDetail.noPersonalDataYet}</p>
           </div>
 

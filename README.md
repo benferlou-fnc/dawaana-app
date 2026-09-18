@@ -97,18 +97,31 @@ invisible.
 - Aucune politique d'écriture ne permet de toucher aux publications d'autrui :
   toutes sont conditionnées à `auth.uid() = user_id`.
 
-## Contrôle du médicament par un pharmacien (`/pharmacien`)
+## Tableau de bord pharmacien (`/pharmacien`, migrations `0012`/`0013`)
 
 Le badge « identité vérifiée » atteste de la **personne**. Il ne dit rien sur
 le **médicament** lui-même — bon produit, bon dosage, date de péremption
 encore valable. C'est ce que ce second rôle couvre, indépendamment du
 premier.
 
-Un compte marqué pharmacien voit dans `/pharmacien` la liste des dons en
-ligne, et peut y poser ou retirer un badge « médicament contrôlé »
-(`components/MedicationVerifiedBadge.tsx`), affiché sur l'annonce à côté du
-badge d'identité. Comme pour `/admin`, la page répond « introuvable » à qui
-n'a pas ce rôle.
+Un compte marqué pharmacien voit dans `/pharmacien` un vrai tableau de bord,
+pas seulement une liste :
+
+- **Statistiques personnelles** : dons à contrôler (réseau), dons déjà
+  contrôlés (réseau), et dons que *ce pharmacien* a personnellement
+  contrôlés (tout statut confondu, pas seulement les dons encore actifs).
+- **Dons en ligne** : la liste existante, avec le bouton pour poser ou
+  retirer le badge « médicament contrôlé »
+  (`components/MedicationVerifiedBadge.tsx`, affiché sur l'annonce à côté du
+  badge d'identité).
+- **Historique de mes contrôles** : tous les dons que ce pharmacien a
+  contrôlés par le passé, même redevenus inactifs depuis — classés du plus
+  récent au plus ancien (`listings.medication_verified_at`), pour qu'un
+  contrôle ne disparaisse pas simplement parce que le don a été retiré ou
+  résolu entretemps.
+- **Notifications push** : voir section suivante.
+
+Comme pour `/admin`, la page répond « introuvable » à qui n'a pas ce rôle.
 
 ### Désigner un pharmacien
 
@@ -125,7 +138,63 @@ directe à tout le monde, auteur de l'annonce compris (colonne volontairement
 absente de la liste `grant update (...)` posée par la migration
 `0008_modifier_annonce.sql`) : seule la fonction
 `pharmacist_set_medication_verified`, qui revérifie elle-même le rôle de
-l'appelant, peut la modifier.
+l'appelant, peut la modifier. Elle pose désormais aussi
+`medication_verified_by` (qui) et `medication_verified_at` (quand), remis à
+`null` si le contrôle est retiré.
+
+## Notifications push pour les pharmaciens (migrations `0012`/`0013`)
+
+À chaque nouveau don actif publié, tous les pharmaciens bénévoles abonnés
+reçoivent une notification **push du navigateur** — même si le site n'est
+pas ouvert (application installée ou simple onglet fermé), tant que le
+navigateur tourne. Ce n'est pas une application `.apk` séparée à maintenir :
+ça s'appuie entièrement sur le service worker déjà utilisé pour rendre le
+site installable (`public/sw.js`).
+
+Schéma général :
+
+1. Un trigger Postgres (`notify_pharmacists_new_don`, `AFTER INSERT ON
+   listings WHEN type = 'don' AND status = 'active'`) appelle, via
+   l'extension `pg_net`, l'edge function `notify-pharmacists`
+   (`supabase/functions/notify-pharmacists`).
+2. L'edge function revérifie elle-même côté serveur que l'annonce est bien
+   un don actif réel (jamais confiance aveugle dans le trigger), lit les
+   clés VAPID depuis **Supabase Vault**, et envoie une notification Web
+   Push à chaque abonnement de `push_subscriptions` appartenant à un
+   pharmacien (`profiles.is_pharmacist = true`). Les abonnements expirés
+   (HTTP 404/410) sont supprimés automatiquement.
+3. Le service worker (`public/sw.js`) affiche la notification (`push`) et
+   ouvre/rappelle l'onglet sur l'annonce concernée au clic
+   (`notificationclick`).
+4. Côté client, `components/PushNotificationToggle.tsx` (affiché dans
+   l'en-tête de `/pharmacien`) gère la demande de permission et
+   l'abonnement/désabonnement, en écrivant dans `push_subscriptions`.
+
+### Sécurité des clés VAPID
+
+La paire de clés VAPID identifie le serveur applicatif auprès des
+navigateurs. La clé **publique** n'est pas sensible (elle circule déjà dans
+chaque page cliente) : elle vit dans `NEXT_PUBLIC_VAPID_PUBLIC_KEY`
+(`.env.local`, jamais committée en clair — seul un exemple factice est dans
+`.env.local.example`). La clé **privée**, elle, ne doit jamais apparaître
+dans un fichier committé : elle est stockée uniquement dans **Supabase
+Vault** (`vault.create_secret`) et lue au moment de l'exécution par l'edge
+function via son client service-role — jamais transmise au client.
+
+L'edge function est appelée avec `verify_jwt: true` et la clé anonyme
+publique en en-tête `Authorization` (elle aussi non sensible, déjà présente
+dans tout bundle client) : un appel direct à l'edge function reste possible
+en théorie, mais celle-ci revalide toujours que l'annonce visée est un don
+actif réel avant d'envoyer quoi que ce soit — l'abus possible se limite donc
+à renvoyer une notification pour un don déjà public.
+
+### Table `push_subscriptions`
+
+Chaque ligne représente un abonnement navigateur (`endpoint` unique + clés
+de chiffrement `p256dh`/`auth_key`). RLS : chacun ne peut lire, créer,
+modifier ou supprimer que ses propres abonnements
+(`user_id = auth.uid()`) — aucune colonne protégée ici, pas besoin du
+mécanisme « fonction `SECURITY DEFINER` » utilisé ailleurs sur le site.
 
 ## Photos du produit et de la date de péremption
 
@@ -301,15 +370,12 @@ seul côté demandeur.
 
 ## Ce qui n'est PAS encore fait
 
-- Pas de vraie messagerie sécurisée entre demandeur et donateur — le bouton
-  "Je peux aider" prévient maintenant l'auteur par notification (voir
-  `components/HelpButton.tsx`), mais aucune conversation n'est possible
-  dans le site ; le contact réel reste à organiser autrement
 - La vérification d'identité n'est pas branchée : aucun prestataire n'est
   connecté, le badge n'apparaît donc sur aucune annonce
-- Le rôle pharmacien (`/pharmacien`) ne couvre que le contrôle du
-  médicament sur les dons déjà en ligne — pas encore de recrutement ni
-  d'annuaire des pharmaciens bénévoles ; le réseau reste à constituer
+- Le tableau de bord pharmacien (`/pharmacien`) couvre le contrôle du
+  médicament, l'historique personnel et les notifications push — pas encore
+  de recrutement ni d'annuaire des pharmaciens bénévoles ; le réseau reste
+  à constituer
 - Pas de version arabe (RTL) de cette version codée — seule la maquette
   visuelle existe en arabe pour l'instant
 - Pas de modération automatique des annonces
@@ -328,8 +394,11 @@ sont en place. Une fois le site déployé en HTTPS, Chrome propose
 barre de navigateur.
 
 Le service worker ne met **pas** les pages en cache, volontairement : une
-demande de médicament périmée est pire qu'une erreur réseau. Il ne sert
-qu'à l'installabilité et à la page hors-ligne.
+demande de médicament périmée est pire qu'une erreur réseau. Il sert à
+l'installabilité, à la page hors-ligne, et — depuis les migrations
+`0012`/`0013` — à recevoir les notifications push des pharmaciens bénévoles
+(voir plus haut), sans rien changer à ce choix de ne jamais mettre les
+annonces en cache.
 
 **Pour un vrai fichier `.apk`**, la voie normale est un TWA généré avec
 Bubblewrap, sur une machine disposant du SDK Android :

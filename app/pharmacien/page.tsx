@@ -3,19 +3,20 @@ import { notFound } from "next/navigation";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { displayName, donorLocation, isVerified, type Listing } from "@/lib/types";
-import { relativeTime } from "@/lib/relativeTime";
+import { formatDate, relativeTime } from "@/lib/relativeTime";
 import PharmacistActions from "@/components/PharmacistActions";
+import PushNotificationToggle from "@/components/PushNotificationToggle";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
-import { PillIcon, GlobeIcon } from "@/components/icons";
+import { PillIcon, GlobeIcon, ShieldCheckIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Contrôle du médicament — Dawaana", robots: { index: false } };
+export const metadata = { title: "Tableau de bord pharmacien — Dawaana", robots: { index: false } };
 
-function Stat({ label, value, tone }: { label: string; value: number; tone?: "alert" }) {
+function Stat({ label, value, tone }: { label: string; value: number; tone?: "alert" | "positive" }) {
   return (
     <div className="bg-brand-surface border border-brand-border rounded-xl px-4 py-3.5 flex flex-col gap-0.5">
       <span className="text-[11px] uppercase tracking-wider font-semibold text-brand-ink-faint">
@@ -23,7 +24,11 @@ function Stat({ label, value, tone }: { label: string; value: number; tone?: "al
       </span>
       <span
         className={`font-display font-bold text-2xl tabular-nums ${
-          tone === "alert" && value > 0 ? "text-brand-coral-dark" : ""
+          tone === "alert" && value > 0
+            ? "text-brand-coral-dark"
+            : tone === "positive" && value > 0
+            ? "text-brand-green-dark"
+            : ""
         }`}
       >
         {value}
@@ -44,29 +49,47 @@ export default async function PharmacienPage() {
   if (!me?.is_pharmacist) notFound();
 
   const supabase = createClient();
-  const { data: listingsData } = await supabase
-    .from("listings")
-    .select("*, profiles(first_name, identity_verified)")
-    .eq("status", "active")
-    .eq("type", "don")
-    .order("created_at", { ascending: false })
-    .limit(100);
+  const [{ data: listingsData }, { data: historyData }] = await Promise.all([
+    supabase
+      .from("listings")
+      .select("*, profiles(first_name, identity_verified)")
+      .eq("status", "active")
+      .eq("type", "don")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("listings")
+      .select("*, profiles(first_name, identity_verified)")
+      .eq("medication_verified_by", me.id)
+      .order("medication_verified_at", { ascending: false })
+      .limit(100),
+  ]);
 
   const dons = (listingsData ?? []) as Listing[];
+  const history = (historyData ?? []) as Listing[];
   const aControler = dons.filter((l) => !l.medication_verified).length;
   const controles = dons.length - aControler;
 
   return (
     <div className="max-w-5xl mx-auto px-6 py-12 flex flex-col gap-10">
-      <header className="flex flex-col gap-2">
-        <span className="inline-flex items-center gap-2 w-fit rounded-full bg-brand-ink text-white text-[11px] font-bold px-3 h-6">
-          <PillIcon size={12} />
-          {dict.account.pharmacistAccess}
-        </span>
-        <h1 className="font-display font-extrabold text-[28px]">{dict.pharmacien.title}</h1>
-        <p className="text-brand-ink-soft text-sm">
-          {t(dict.pharmacien.connectedAs, { name: me.first_name })}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-2">
+          <span className="inline-flex items-center gap-2 w-fit rounded-full bg-brand-ink text-white text-[11px] font-bold px-3 h-6">
+            <PillIcon size={12} />
+            {dict.pharmacien.profileBadge}
+          </span>
+          <h1 className="font-display font-extrabold text-[28px]">{dict.pharmacien.title}</h1>
+          <p className="text-brand-ink-soft text-sm">
+            {t(dict.pharmacien.connectedAs, { name: me.first_name })}
+            {me.created_at && (
+              <span className="text-brand-ink-faint">
+                {" · "}
+                {t(dict.pharmacien.memberSince, { date: formatDate(me.created_at, locale) })}
+              </span>
+            )}
+          </p>
+        </div>
+        <PushNotificationToggle locale={locale} />
       </header>
 
       <div className="flex gap-3 px-4 py-3.5 bg-brand-surface border border-brand-border rounded-xl">
@@ -74,9 +97,10 @@ export default async function PharmacienPage() {
         <p className="text-xs text-brand-ink-soft leading-relaxed">{dict.pharmacien.noteBody}</p>
       </div>
 
-      <section className="grid grid-cols-2 gap-3">
+      <section className="grid grid-cols-3 gap-3">
         <Stat label={dict.pharmacien.statToControl} value={aControler} tone="alert" />
         <Stat label={dict.pharmacien.statControlled} value={controles} />
+        <Stat label={dict.pharmacien.statMine} value={history.length} tone="positive" />
       </section>
 
       <section className="flex flex-col gap-4">
@@ -175,6 +199,41 @@ export default async function PharmacienPage() {
                 </div>
               );
             })}
+          </div>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-4 border-t border-brand-border pt-8">
+        <h2 className="font-display font-bold text-lg flex items-center gap-2">
+          <ShieldCheckIcon size={18} className="text-brand-green-dark" />
+          {dict.pharmacien.historyTitle}
+        </h2>
+
+        {history.length === 0 ? (
+          <div className="bg-brand-surface border border-brand-border rounded-2xl p-6 text-center text-brand-ink-faint text-sm">
+            {dict.pharmacien.noHistory}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            {history.map((l) => (
+              <div
+                key={l.id}
+                className="bg-brand-surface border border-brand-border rounded-xl px-4 py-3 flex items-center justify-between gap-3 flex-wrap"
+              >
+                <div className="min-w-0">
+                  <Link href={`/annonces/${l.id}`} className="font-bold hover:underline">
+                    {l.medication_name}
+                  </Link>
+                  <div className="text-[12px] text-brand-ink-faint mt-0.5">
+                    {wilayaLabel(l.wilaya, locale)} · {displayName(l)}
+                  </div>
+                </div>
+                <span className="text-[11px] text-brand-green-dark font-semibold flex-none">
+                  {dict.pharmacien.controlledOn}
+                  {l.medication_verified_at && ` · ${relativeTime(l.medication_verified_at, locale)}`}
+                </span>
+              </div>
+            ))}
           </div>
         )}
       </section>

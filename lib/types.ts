@@ -76,6 +76,10 @@ export interface Listing {
   status: ListingStatus;
   /** Posé uniquement par un pharmacien via une fonction dédiée — jamais par l'auteur. */
   medication_verified: boolean;
+  /** Pharmacien ayant réalisé le contrôle (null si jamais contrôlé, ou retiré). */
+  medication_verified_by: string | null;
+  /** Date du contrôle par le pharmacien (null si jamais contrôlé, ou retiré). */
+  medication_verified_at: string | null;
   /** Jusqu'à 3 photos du produit (boîte, comprimés…), facultatives. */
   photo_urls: string[];
   /** Photo de la date de péremption, facultative. */

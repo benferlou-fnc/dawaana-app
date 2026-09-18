@@ -48,3 +48,43 @@ self.addEventListener("fetch", (event) => {
     })
   );
 });
+
+/**
+ * Notifications push (pharmaciens bénévoles).
+ *
+ * Le serveur (Edge Function notify-pharmacists) envoie un payload JSON
+ * { title, body, url }. On l'affiche via l'API Notification du navigateur —
+ * ça fonctionne même si l'onglet ou l'appli est fermé, tant que le service
+ * worker est enregistré (PWA installée ou non).
+ */
+self.addEventListener("push", (event) => {
+  let data = { title: "Dawaana", body: "Nouvelle notification.", url: "/" };
+  try {
+    if (event.data) data = { ...data, ...event.data.json() };
+  } catch {
+    // payload non-JSON : on garde les valeurs par défaut
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: { url: data.url || "/" },
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/";
+
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      for (const client of clients) {
+        if (client.url.includes(url) && "focus" in client) return client.focus();
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(url);
+    })
+  );
+});

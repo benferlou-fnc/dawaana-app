@@ -281,6 +281,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               locale={locale}
               loggedIn={Boolean(me)}
               isOwner={isOwner}
+              isActive={listing.status === "active"}
               meId={me?.id ?? null}
               conversations={conversations}
               initialMessages={messages}

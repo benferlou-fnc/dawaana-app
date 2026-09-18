@@ -148,6 +148,7 @@ export default function ConversationSection({
   locale,
   loggedIn,
   isOwner,
+  isActive,
   meId,
   conversations,
   initialMessages,
@@ -157,6 +158,10 @@ export default function ConversationSection({
   locale: Locale;
   loggedIn: boolean;
   isOwner: boolean;
+  /** L'annonce est-elle toujours active ? Une conversation déjà en cours
+   * (pending/acceptée/déclinée) reste consultable même si non — seul le
+   * bouton pour se proposer une première fois est masqué. */
+  isActive: boolean;
   meId: string | null;
   conversations: Conversation[];
   initialMessages: Record<string, ChatMessage[]>;
@@ -265,6 +270,13 @@ export default function ConversationSection({
   const mine = conversations.find((c) => c.requester_id === meId);
 
   if (!mine) {
+    if (!isActive) {
+      return (
+        <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">
+          {dict.messagerie.listingNotActive}
+        </p>
+      );
+    }
     return (
       <div className="flex flex-col gap-1.5">
         <button

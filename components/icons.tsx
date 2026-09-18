@@ -146,6 +146,15 @@ export function PencilIcon({ className, size = 16 }: IconProps) {
   );
 }
 
+export function BellIcon({ className, size = 18 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <path d="M6 9a6 6 0 1112 0c0 4.5 1.5 6 2 6.5H4c.5-.5 2-2 2-6.5z" />
+      <path d="M10 19.5a2 2 0 004 0" />
+    </svg>
+  );
+}
+
 export function BadgeCheckIcon({ className, size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>

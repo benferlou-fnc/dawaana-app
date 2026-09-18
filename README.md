@@ -14,6 +14,9 @@ d'annonces est vraiment lue depuis la base.
   photo de la date de péremption (voir plus bas)
 - L'auteur d'une annonce peut la **modifier après publication**
   (`/annonces/[id]/modifier` : champs, statut, photos)
+- **Notifications in-app** (cloche dans l'en-tête) : quelqu'un se propose
+  d'aider sur une annonce, un badge est posé, une annonce est modérée par
+  un administrateur (voir plus bas)
 - Emplacement du donateur quand il est à l'étranger (pays, ville) et date
   de vol / arrivée
 - **Carnet de voyages** (`/voyages`) : un voyageur annonce son trajet
@@ -157,6 +160,39 @@ visiteur, même connecté. Restent interdits en écriture directe, migration
 `consent_at`, `created_at` (figés à la publication) et
 `medication_verified` (pharmacien uniquement, voir plus haut).
 
+## Notifications (`migration 0009_notifications.sql`)
+
+Une cloche dans l'en-tête (`components/NotificationBell.tsx`, visible une
+fois connecté) affiche les notifications de l'utilisateur — in-app
+uniquement, pas d'e-mail. Trois événements les déclenchent :
+
+1. **Quelqu'un clique « Je peux aider »** sur une annonce
+   (`components/HelpButton.tsx`) — l'auteur de l'annonce est notifié. Il
+   faut être connecté pour proposer son aide (sinon le bouton devient un
+   lien vers `/connexion`), et on ne peut pas se notifier soi-même sur sa
+   propre annonce.
+2. **Un badge est posé** — identité vérifiée par un administrateur
+   (`admin_set_verified`) ou médicament contrôlé par un pharmacien
+   (`pharmacist_set_medication_verified`) : ces deux fonctions, déjà
+   protégées par leur propre garde-fou de rôle, insèrent maintenant aussi
+   la notification.
+3. **Un administrateur modère une annonce** (retrait / remise en ligne
+   depuis `/admin`) : un déclencheur SQL sur `listings` (`AFTER UPDATE ...
+   WHEN (OLD.status IS DISTINCT FROM NEW.status)`) compare `auth.uid()` au
+   `user_id` de l'annonce — s'ils diffèrent, c'est forcément un
+   administrateur (seul autre rôle autorisé par les policies RLS à
+   modifier l'annonce d'un tiers), donc l'auteur est notifié. Quand
+   l'auteur change lui-même le statut de sa propre annonce (`/mon-compte`),
+   `auth.uid()` égale `user_id` : aucune notification, on ne se notifie
+   pas soi-même.
+
+Comme pour les photos, aucune policy `insert` n'est posée sur
+`notifications` : toute création passe par une fonction ou un déclencheur
+`SECURITY DEFINER`, donc personne ne peut créer de notification arbitraire
+pour un autre membre depuis le client. Seule la colonne `read_at` est
+modifiable côté client (`grant update (read_at)`), pour marquer une
+notification comme lue.
+
 ## Catégories d'annonces
 
 Une annonce ne porte plus uniquement sur un médicament : à la publication,
@@ -224,9 +260,10 @@ seul côté demandeur.
 
 ## Ce qui n'est PAS encore fait
 
-- Pas de vraie messagerie sécurisée entre demandeur et donateur (le bouton
-  "Je peux aider" affiche pour l'instant un message d'attente — voir
-  `components/HelpButton.tsx`)
+- Pas de vraie messagerie sécurisée entre demandeur et donateur — le bouton
+  "Je peux aider" prévient maintenant l'auteur par notification (voir
+  `components/HelpButton.tsx`), mais aucune conversation n'est possible
+  dans le site ; le contact réel reste à organiser autrement
 - La vérification d'identité n'est pas branchée : aucun prestataire n'est
   connecté, le badge n'apparaît donc sur aucune annonce
 - Le rôle pharmacien (`/pharmacien`) ne couvre que le contrôle du

@@ -150,3 +150,26 @@ export const TRIP_STATUS_LABEL: Record<TripStatus, string> = {
   passe: "Passé",
   retire: "Retiré",
 };
+
+export type NotificationType =
+  | "interest"
+  | "identity_verified"
+  | "medication_verified"
+  | "listing_moderated";
+
+/** Notification in-app. `data` porte tout le nécessaire à l'affichage, figé
+ * au moment de l'événement (indépendant d'une modification ultérieure). */
+export interface AppNotification {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  listing_id: string | null;
+  data: {
+    medication_name?: string;
+    listing_type?: ListingType;
+    helper_first_name?: string;
+    new_status?: ListingStatus;
+  };
+  read_at: string | null;
+  created_at: string;
+}

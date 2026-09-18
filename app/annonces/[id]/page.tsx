@@ -39,7 +39,8 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   if (!listing) notFound();
 
   const me = await getCurrentProfile();
-  const canEdit = Boolean(me) && (me!.id === listing.user_id || me!.is_admin);
+  const isOwner = Boolean(me) && me!.id === listing.user_id;
+  const canEdit = isOwner || Boolean(me?.is_admin);
 
   const isDon = listing.type === "don";
   const location = donorLocation(listing);
@@ -220,7 +221,13 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               </div>
               <p className="text-[13.5px] text-brand-ink-soft leading-relaxed">{dict.annonceDetail.step3}</p>
             </div>
-            <HelpButton listingType={listing.type} locale={locale} />
+            {isOwner ? (
+              <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">
+                {dict.annonceDetail.ownListingNote}
+              </p>
+            ) : (
+              <HelpButton listingId={listing.id} listingType={listing.type} locale={locale} />
+            )}
             <p className="text-[11.5px] text-brand-ink-faint text-center">{dict.annonceDetail.noPersonalDataYet}</p>
           </div>
 

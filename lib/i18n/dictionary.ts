@@ -47,8 +47,11 @@ const fr = {
   helpButton: {
     interestedDon: "Je suis intéressé(e) par ce don",
     canHelpRequest: "Je peux aider ce cas",
+    sending: "Envoi…",
+    needAccount: "Connectez-vous pour proposer votre aide",
+    errorFailed: "L'envoi a échoué. Merci de réessayer dans un instant.",
     thankYou:
-      "Merci ! Un bénévole du réseau Dawaana va examiner votre proposition et vous recontacter via une messagerie sécurisée.",
+      "Merci ! L'auteur de l'annonce a été prévenu par notification. Un bénévole du réseau Dawaana peut aussi examiner votre proposition et vous recontacter via une messagerie sécurisée.",
     devNote:
       "(La messagerie intégrée est encore en développement pour cette version de démonstration.)",
   },
@@ -149,6 +152,7 @@ const fr = {
     step1: "Cliquez ci-dessous, sans donner vos coordonnées.",
     step2: "La mise en relation se fera par messagerie — en cours de construction.",
     step3: "Remise en main propre. Ni vente, ni envoi postal.",
+    ownListingNote: "C'est votre annonce — vous serez notifié(e) ici dès que quelqu'un se proposera.",
     noPersonalDataYet: "Aucune donnée personnelle partagée à ce stade",
     relayPoint: "Point relais",
     relayPointBody: "L'adresse exacte est communiquée après vérification par un bénévole.",
@@ -231,6 +235,17 @@ const fr = {
     cancel: "Annuler",
     statusLabel: "Statut de l'annonce",
     errorUpdateFailed: "La modification a échoué. Merci de réessayer dans un instant.",
+  },
+  notifications: {
+    title: "Notifications",
+    empty: "Aucune notification pour le moment.",
+    markAllRead: "Tout marquer comme lu",
+    someone: "Un membre",
+    interest: "{name} se propose pour « {medication} ».",
+    identityVerified: "Votre identité a été vérifiée — le badge apparaît désormais sur vos annonces.",
+    medicationVerified: "Un pharmacien bénévole a contrôlé « {medication} ».",
+    listingRemoved: "Votre annonce « {medication} » a été retirée par un modérateur.",
+    listingRestored: "Votre annonce « {medication} » a été remise en ligne par un modérateur.",
   },
   voyages: {
     title: "Carnet de voyages",
@@ -529,8 +544,11 @@ const ar: typeof fr = {
   helpButton: {
     interestedDon: "أنا مهتم(ة) بهذا التبرع",
     canHelpRequest: "يمكنني مساعدة هذه الحالة",
+    sending: "جارٍ الإرسال…",
+    needAccount: "سجّل الدخول لاقتراح مساعدتك",
+    errorFailed: "فشل الإرسال. يرجى المحاولة مرة أخرى بعد قليل.",
     thankYou:
-      "شكرًا لك! سيقوم أحد متطوعي شبكة داوانا بمراجعة اقتراحك والتواصل معك عبر رسائل آمنة.",
+      "شكرًا لك! تم إعلام صاحب الإعلان عبر إشعار. يمكن أيضًا لأحد متطوعي شبكة داوانا مراجعة اقتراحك والتواصل معك عبر رسائل آمنة.",
     devNote: "(المراسلة المدمجة لا تزال قيد التطوير في هذه النسخة التجريبية.)",
   },
   categories: {
@@ -626,6 +644,7 @@ const ar: typeof fr = {
     step1: "انقر أدناه، دون تقديم بيانات التواصل الخاصة بك.",
     step2: "سيتم التواصل عبر المراسلة — قيد الإنشاء حاليًا.",
     step3: "التسليم يدًا بيد. لا بيع ولا إرسال بريدي.",
+    ownListingNote: "هذا إعلانك — ستُعلَم هنا فور تقدّم أحدهم بالمساعدة.",
     noPersonalDataYet: "لم تتم مشاركة أي بيانات شخصية في هذه المرحلة",
     relayPoint: "نقطة التسليم",
     relayPointBody: "يتم تبليغ العنوان الدقيق بعد التحقق من طرف متطوع.",
@@ -704,6 +723,17 @@ const ar: typeof fr = {
     cancel: "إلغاء",
     statusLabel: "حالة الإعلان",
     errorUpdateFailed: "فشل التعديل. يرجى المحاولة مرة أخرى بعد قليل.",
+  },
+  notifications: {
+    title: "الإشعارات",
+    empty: "لا توجد إشعارات حاليًا.",
+    markAllRead: "وضع علامة مقروء على الكل",
+    someone: "أحد الأعضاء",
+    interest: "{name} تقدّم(ت) للمساعدة بخصوص « {medication} ».",
+    identityVerified: "تم التحقق من هويتك — تظهر الشارة الآن على إعلاناتك.",
+    medicationVerified: "قام صيدلي متطوع بمراقبة « {medication} ».",
+    listingRemoved: "تم سحب إعلانك « {medication} » من طرف مشرف.",
+    listingRestored: "تمت إعادة نشر إعلانك « {medication} » من طرف مشرف.",
   },
   voyages: {
     title: "دفتر الأسفار",

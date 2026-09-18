@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Logo from "./Logo";
 import LangSwitcher from "./LangSwitcher";
+import NotificationBell from "./NotificationBell";
 import { PlusIcon } from "./icons";
 import { getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -30,6 +31,8 @@ export default async function Nav({ locale }: { locale: Locale }) {
 
         <div className="flex items-center gap-3">
           <LangSwitcher locale={locale} className="hidden sm:inline-flex" />
+
+          {profile && <NotificationBell locale={locale} />}
 
           {profile ? (
             <Link

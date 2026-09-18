@@ -258,6 +258,9 @@ const fr = {
     medicationVerified: "Un pharmacien bénévole a contrôlé « {medication} ».",
     listingRemoved: "Votre annonce « {medication} » a été retirée par un modérateur.",
     listingRestored: "Votre annonce « {medication} » a été remise en ligne par un modérateur.",
+    interestAccepted: "Votre proposition pour « {medication} » a été acceptée — la messagerie est ouverte.",
+    interestDeclined: "Votre proposition pour « {medication} » a été déclinée.",
+    newMessage: "{name} vous a envoyé un message à propos de « {medication} ».",
   },
   voyages: {
     title: "Carnet de voyages",
@@ -758,6 +761,9 @@ const ar: typeof fr = {
     medicationVerified: "قام صيدلي متطوع بمراقبة « {medication} ».",
     listingRemoved: "تم سحب إعلانك « {medication} » من طرف مشرف.",
     listingRestored: "تمت إعادة نشر إعلانك « {medication} » من طرف مشرف.",
+    interestAccepted: "تم قبول اقتراحك بخصوص « {medication} » — المراسلة مفتوحة الآن.",
+    interestDeclined: "تم رفض اقتراحك بخصوص « {medication} ».",
+    newMessage: "{name} أرسل(ت) لك رسالة بخصوص « {medication} ».",
   },
   voyages: {
     title: "دفتر الأسفار",

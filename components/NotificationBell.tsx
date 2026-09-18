@@ -32,6 +32,15 @@ function notificationText(n: AppNotification, dict: ReturnType<typeof getDiction
       return n.data.new_status === "active"
         ? t(dict.notifications.listingRestored, { medication: n.data.medication_name || "" })
         : t(dict.notifications.listingRemoved, { medication: n.data.medication_name || "" });
+    case "interest_accepted":
+      return t(dict.notifications.interestAccepted, { medication: n.data.medication_name || "" });
+    case "interest_declined":
+      return t(dict.notifications.interestDeclined, { medication: n.data.medication_name || "" });
+    case "message":
+      return t(dict.notifications.newMessage, {
+        name: n.data.helper_first_name || dict.notifications.someone,
+        medication: n.data.medication_name || "",
+      });
     default:
       return "";
   }

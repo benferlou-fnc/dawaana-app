@@ -10,7 +10,10 @@ d'annonces est vraiment lue depuis la base.
 - Page d'accueil avec les 3 dernières annonces en direct
 - Page "Parcourir les annonces" avec filtres (wilaya, type, urgence, recherche par nom)
 - Formulaire de publication (demande ou don) qui écrit dans Supabase, sous
-  **prénom seul**
+  **prénom seul** — avec, pour un don, jusqu'à 3 photos du produit et une
+  photo de la date de péremption (voir plus bas)
+- L'auteur d'une annonce peut la **modifier après publication**
+  (`/annonces/[id]/modifier` : champs, statut, photos)
 - Emplacement du donateur quand il est à l'étranger (pays, ville) et date
   de vol / arrivée
 - **Carnet de voyages** (`/voyages`) : un voyageur annonce son trajet
@@ -114,11 +117,45 @@ update public.profiles set is_pharmacist = true
 where id = (select id from auth.users where email = 'adresse@exemple.com');
 ```
 
-La colonne `listings.medication_verified` est interdite en écriture directe
-à tout le monde, auteur de l'annonce compris (migration
-`0006_pharmacien.sql` restreint désormais l'écriture sur `listings` à la
-seule colonne `status`) : seule la fonction `pharmacist_set_medication_verified`,
-qui revérifie elle-même le rôle de l'appelant, peut la modifier.
+La colonne `listings.medication_verified` reste interdite en écriture
+directe à tout le monde, auteur de l'annonce compris (colonne volontairement
+absente de la liste `grant update (...)` posée par la migration
+`0008_modifier_annonce.sql`) : seule la fonction
+`pharmacist_set_medication_verified`, qui revérifie elle-même le rôle de
+l'appelant, peut la modifier.
+
+## Photos du produit et de la date de péremption
+
+Une photo réelle du produit (boîte, comprimés…) et de sa date de péremption
+donne au pharmacien bénévole bien plus à contrôler qu'une description
+texte. Sur un don, le formulaire de publication permet d'ajouter jusqu'à
+3 photos du produit et une photo dédiée à la date de péremption
+(`components/PublierForm.tsx`) — toutes facultatives, pour ne jamais
+bloquer une publication urgente.
+
+Les photos sont stockées dans le bucket Supabase Storage public
+`listing-photos` (migration `0007_photos.sql`). Chacun ne peut déposer (ni
+supprimer) que dans son propre dossier, préfixé par son `user_id` — jamais
+dans celui d'un autre membre. Le bucket est public en lecture : comme les
+annonces elles-mêmes sont déjà publiques, une URL publique évite de gérer
+des URLs signées côté client.
+
+## Modifier une annonce après publication (`/annonces/[id]/modifier`)
+
+Jusqu'à la migration `0008_modifier_annonce.sql`, seule la colonne
+`status` était modifiable après publication (pour retirer / republier /
+marquer résolue depuis `/mon-compte`). L'auteur ne pouvait corriger ni une
+erreur de saisie, ni ajouter une photo après coup.
+
+`PublierForm.tsx` sert maintenant à la fois à publier et à modifier (prop
+`mode="edit"` + `listing` pré-rempli), pour éviter de dupliquer le
+formulaire. La page `/annonces/[id]/modifier` (et le lien "Modifier" sur
+la fiche annonce et dans `/mon-compte`) n'est accessible qu'à l'auteur de
+l'annonce ou à un administrateur — page introuvable pour tout autre
+visiteur, même connecté. Restent interdits en écriture directe, migration
+0008 comprise : `id`, `user_id`, `type`, `first_name`, `pseudonym`,
+`consent_at`, `created_at` (figés à la publication) et
+`medication_verified` (pharmacien uniquement, voir plus haut).
 
 ## Catégories d'annonces
 

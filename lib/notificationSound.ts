@@ -38,12 +38,29 @@ function getContext(): AudioContext | null {
   return sharedContext;
 }
 
+/**
+ * À appeler depuis un vrai geste utilisateur (clic, touche) tôt dans la
+ * session. Les navigateurs bloquent la lecture audio tant qu'aucune
+ * interaction n'a eu lieu, et ignorent silencieusement un `resume()` appelé
+ * en dehors d'un geste (aucune erreur, mais aucun son non plus) — c'est ce
+ * qui empêchait le son de jouer : le sondage automatique de la cloche
+ * (`setInterval`) n'est pas un geste. Une fois débloqué ici, le contexte
+ * reste utilisable pour le reste de la session, y compris depuis un
+ * déclenchement automatique plus tard.
+ */
+export function ensureAudioUnlocked() {
+  const ctx = getContext();
+  if (ctx && ctx.state === "suspended") {
+    ctx.resume().catch(() => {});
+  }
+}
+
 export function playNotificationSound() {
   if (isNotificationSoundMuted()) return;
   const ctx = getContext();
   if (!ctx) return;
   try {
-    if (ctx.state === "suspended") ctx.resume();
+    if (ctx.state === "suspended") ctx.resume().catch(() => {});
     const now = ctx.currentTime;
     const notes: Array<[number, number]> = [
       [880, now],

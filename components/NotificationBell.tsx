@@ -9,6 +9,7 @@ import { BellIcon, VolumeIcon, VolumeOffIcon } from "./icons";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
 import {
+  ensureAudioUnlocked,
   isNotificationSoundMuted,
   playNotificationSound,
   setNotificationSoundMuted,
@@ -48,6 +49,21 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
 
   useEffect(() => {
     setMuted(isNotificationSoundMuted());
+  }, []);
+
+  // Débloque l'audio dès la première interaction avec la page (clic, touche,
+  // tap) — sans ça, le navigateur ignore silencieusement le son déclenché
+  // plus tard par le sondage automatique de la cloche.
+  useEffect(() => {
+    function unlock() {
+      ensureAudioUnlocked();
+    }
+    window.addEventListener("pointerdown", unlock, { once: true });
+    window.addEventListener("keydown", unlock, { once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlock);
+      window.removeEventListener("keydown", unlock);
+    };
   }, []);
 
   function toggleMute() {
@@ -90,6 +106,7 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
   }, []);
 
   function toggle() {
+    ensureAudioUnlocked();
     const next = !open;
     setOpen(next);
     if (next) loadList();

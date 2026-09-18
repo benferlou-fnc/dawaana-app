@@ -172,6 +172,24 @@ export function BellIcon({ className, size = 18 }: IconProps) {
   );
 }
 
+export function VolumeIcon({ className, size = 15 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <path d="M4 9v6h4l5 4V5L8 9H4z" />
+      <path d="M17 8a5 5 0 010 8" />
+    </svg>
+  );
+}
+
+export function VolumeOffIcon({ className, size = 15 }: IconProps) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>
+      <path d="M4 9v6h4l5 4V5L8 9H4z" />
+      <path d="M16 9l5 6M21 9l-5 6" />
+    </svg>
+  );
+}
+
 export function BadgeCheckIcon({ className, size = 14 }: IconProps) {
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" {...base} stroke="currentColor" className={className}>

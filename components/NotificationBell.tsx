@@ -1,13 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { AppNotification } from "@/lib/types";
 import { relativeTime } from "@/lib/relativeTime";
-import { BellIcon } from "./icons";
+import { BellIcon, VolumeIcon, VolumeOffIcon } from "./icons";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
+import {
+  isNotificationSoundMuted,
+  playNotificationSound,
+  setNotificationSoundMuted,
+} from "@/lib/notificationSound";
 
 const POLL_MS = 45_000;
 
@@ -38,13 +43,33 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [muted, setMuted] = useState(false);
+  const prevUnreadRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    setMuted(isNotificationSoundMuted());
+  }, []);
+
+  function toggleMute() {
+    const next = !muted;
+    setMuted(next);
+    setNotificationSoundMuted(next);
+  }
 
   async function refreshCount() {
     const { count } = await createClient()
       .from("notifications")
       .select("id", { count: "exact", head: true })
       .is("read_at", null);
-    setUnreadCount(count ?? 0);
+    const next = count ?? 0;
+    // Un son seulement quand le compte augmente par rapport au dernier relevé
+    // (jamais au tout premier chargement, pour ne pas sonner sur des
+    // notifications déjà en attente avant l'ouverture de la page).
+    if (prevUnreadRef.current !== null && next > prevUnreadRef.current) {
+      playNotificationSound();
+    }
+    prevUnreadRef.current = next;
+    setUnreadCount(next);
   }
 
   async function loadList() {
@@ -118,15 +143,26 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
           <div className="absolute right-0 rtl:right-auto rtl:left-0 mt-2 w-[320px] max-h-[420px] overflow-y-auto bg-brand-surface border border-brand-border rounded-2xl shadow-lg z-30 flex flex-col">
             <div className="flex items-center justify-between gap-2 px-4 py-3 border-b border-brand-border sticky top-0 bg-brand-surface">
               <span className="font-display font-bold text-sm">{dict.notifications.title}</span>
-              {unreadCount > 0 && (
+              <div className="flex items-center gap-3 flex-none">
+                {unreadCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={markAllRead}
+                    className="text-[11px] font-semibold text-brand-coral-dark underline underline-offset-2"
+                  >
+                    {dict.notifications.markAllRead}
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={markAllRead}
-                  className="text-[11px] font-semibold text-brand-coral-dark underline underline-offset-2"
+                  onClick={toggleMute}
+                  aria-label={muted ? dict.notifications.unmute : dict.notifications.mute}
+                  title={muted ? dict.notifications.unmute : dict.notifications.mute}
+                  className="w-6 h-6 rounded-md flex items-center justify-center text-brand-ink-faint hover:text-brand-ink-soft hover:bg-brand-bg transition flex-none"
                 >
-                  {dict.notifications.markAllRead}
+                  {muted ? <VolumeOffIcon size={14} /> : <VolumeIcon size={14} />}
                 </button>
-              )}
+              </div>
             </div>
 
             {loading ? (

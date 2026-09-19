@@ -27,6 +27,10 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
   const [status, setStatus] = useState<Status>("checking");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
+  // « Réessayez depuis les réglages du navigateur » n'aide personne quand la
+  // vraie cause est une clé absente ou un abonnement refusé : on affiche le
+  // motif réel sous le message, au lieu de le laisser dans la console.
+  const [errorDetail, setErrorDetail] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -52,6 +56,7 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
   async function enable() {
     setBusy(true);
     setError(false);
+    setErrorDetail(null);
     try {
       const permission = await Notification.requestPermission();
       if (permission !== "granted") {
@@ -60,7 +65,13 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
         return;
       }
       const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY;
-      if (!vapidPublicKey) throw new Error("Clé VAPID publique manquante");
+      if (!vapidPublicKey) {
+        throw new Error(
+          "NEXT_PUBLIC_VAPID_PUBLIC_KEY absente de la configuration du site. " +
+            "Cette variable est figée au moment de la construction : après l'avoir " +
+            "ajoutée, il faut relancer un déploiement."
+        );
+      }
 
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.subscribe({
@@ -91,6 +102,7 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
     } catch (err) {
       console.error(err);
       setError(true);
+      setErrorDetail(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -99,6 +111,7 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
   async function disable() {
     setBusy(true);
     setError(false);
+    setErrorDetail(null);
     try {
       const reg = await navigator.serviceWorker.ready;
       const sub = await reg.pushManager.getSubscription();
@@ -110,6 +123,7 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
     } catch (err) {
       console.error(err);
       setError(true);
+      setErrorDetail(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
@@ -138,7 +152,14 @@ export default function PushNotificationToggle({ locale }: { locale: Locale }) {
           ? dict.pharmacien.pushWorking
           : dict.pharmacien.pushOff}
       </button>
-      {error && <span className="text-[11px] text-brand-coral-dark">{dict.pharmacien.pushError}</span>}
+      {error && (
+        <div className="flex flex-col items-end gap-0.5 max-w-xs text-right rtl:text-left">
+          <span className="text-[11px] text-brand-coral-dark">{dict.pharmacien.pushError}</span>
+          {errorDetail && (
+            <span className="text-[10.5px] text-brand-ink-faint leading-snug">{errorDetail}</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

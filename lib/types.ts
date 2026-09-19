@@ -104,8 +104,20 @@ export interface Trip {
   profiles?: JoinedProfile;
 }
 
-/** Colonnes à demander pour afficher une annonce avec son badge. */
-export const LISTING_SELECT = "*, profiles(first_name, identity_verified)";
+/**
+ * Colonnes à demander pour afficher une annonce avec son badge.
+ *
+ * La jointure est nommée explicitement. Depuis que la migration 0012 a
+ * ajouté medication_verified_by, une annonce pointe DEUX fois vers profiles
+ * (son auteur, et le pharmacien qui l'a contrôlée). PostgREST ne peut plus
+ * deviner laquelle on veut : il refuse la requête entière avec PGRST201,
+ * et toute la page tombe — liste vide, ou 404 sur une fiche. C'est l'auteur
+ * que l'on affiche, donc listings_user_id_fkey.
+ */
+export const LISTING_SELECT =
+  "*, profiles!listings_user_id_fkey(first_name, identity_verified)";
+
+/** Un trajet n'a qu'un seul lien vers profiles : pas d'ambiguïté possible. */
 export const TRIP_SELECT = "*, profiles(first_name, identity_verified)";
 
 /** Nom à afficher : prénom figé, sinon profil, sinon ancien pseudonyme. */

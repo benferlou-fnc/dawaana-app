@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { displayName, isVerified, type Listing } from "@/lib/types";
+import { displayName, isVerified, LISTING_SELECT, type Listing } from "@/lib/types";
 import { formatDate, relativeTime } from "@/lib/relativeTime";
 import PharmacistActions from "@/components/PharmacistActions";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
@@ -52,14 +52,14 @@ export default async function PharmacienPage() {
   const [{ data: listingsData }, { data: historyData }] = await Promise.all([
     supabase
       .from("listings")
-      .select("*, profiles(first_name, identity_verified)")
+      .select(LISTING_SELECT)
       .eq("status", "active")
       .eq("type", "don")
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
       .from("listings")
-      .select("*, profiles(first_name, identity_verified)")
+      .select(LISTING_SELECT)
       .eq("medication_verified_by", me.id)
       .order("medication_verified_at", { ascending: false })
       .limit(100),

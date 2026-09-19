@@ -1,23 +1,18 @@
 import Link from "next/link";
-import {
-  displayName,
-  donorLocation,
-  isVerified,
-  type Listing,
-} from "@/lib/types";
+import { displayName, isVerified, type Listing } from "@/lib/types";
 import { relativeTime } from "@/lib/relativeTime";
 import { MapPinIcon, GlobeIcon, TagIcon } from "./icons";
 import VerifiedBadge from "./VerifiedBadge";
 import MedicationVerifiedBadge from "./MedicationVerifiedBadge";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
+import { wilayaLabel, placeLabel } from "@/lib/i18n/labels";
 
 export default function ListingCard({ listing, locale }: { listing: Listing; locale: Locale }) {
   const dict = getDictionary(locale);
   const isDon = listing.type === "don";
   const isUrgent = listing.urgency === "urgent";
-  const abroad = isDon ? donorLocation(listing) : null;
+  const abroad = isDon ? placeLabel(listing, locale) : null;
 
   return (
     <div className="bg-brand-surface border border-brand-border rounded-2xl p-5 flex flex-col gap-4">
@@ -94,7 +89,7 @@ export default function ListingCard({ listing, locale }: { listing: Listing; loc
             <span>·</span>
             <span className="flex items-center gap-1.5">
               <GlobeIcon />
-              {dict.listingCard.since} {countryLabel(abroad, locale)}
+              {dict.listingCard.since} {abroad}
             </span>
           </>
         )}

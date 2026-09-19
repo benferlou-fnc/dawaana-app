@@ -66,6 +66,16 @@ const fr = {
     noMessagesYet: "Aucun message pour le moment — lancez la conversation.",
     errorRespondFailed: "L'action a échoué. Merci de réessayer.",
     errorSendFailed: "L'envoi du message a échoué. Merci de réessayer.",
+    contactTraveller: "Écrire à ce voyageur",
+    needAccountTrip: "Connectez-vous pour écrire à ce voyageur",
+    pendingNoteTrip:
+      "Votre demande a été envoyée — le voyageur doit l'accepter avant que la conversation s'ouvre.",
+    declinedNoteTrip: "Le voyageur a décliné votre demande.",
+    acceptedNoteTrip: "Demande acceptée — la conversation est ouverte ci-dessous.",
+    tripNotActive: "Ce trajet n'est plus annoncé — impossible d'écrire au voyageur.",
+    proposalFromTrip: "{name} souhaite vous écrire au sujet de ce trajet.",
+    noProposalsYetTrip:
+      "Aucune demande pour le moment — elles apparaîtront ici dès que quelqu'un vous écrira.",
   },
   categories: {
     medicament: "Médicament",
@@ -262,6 +272,11 @@ const fr = {
     interestAccepted: "Votre proposition pour « {medication} » a été acceptée — la messagerie est ouverte.",
     interestDeclined: "Votre proposition pour « {medication} » a été déclinée.",
     newMessage: "{name} vous a envoyé un message à propos de « {medication} ».",
+    interestTrip: "{name} souhaite vous écrire au sujet de votre trajet vers {wilaya}.",
+    interestAcceptedTrip:
+      "Votre demande de contact pour le trajet vers {wilaya} a été acceptée — la messagerie est ouverte.",
+    interestDeclinedTrip: "Votre demande de contact pour le trajet vers {wilaya} a été déclinée.",
+    newMessageTrip: "{name} vous a envoyé un message à propos du trajet vers {wilaya}.",
   },
   voyages: {
     title: "Carnet de voyages",
@@ -285,8 +300,9 @@ const fr = {
     arrivesInDays: "Dans {n} jours",
     arrivalWilaya: "Arrivée :",
     availabilityTitle: "Disponibilité annoncée",
-    messagingNotReady:
-      "La mise en relation par messagerie n'est pas encore ouverte. Un médicament doit voyager étiqueté au nom de la personne qui le porte, avec son ordonnance : ce trajet sert à savoir qui sera sur place, pas à confier un colis.",
+    contactTitle: "Prendre contact",
+    handoverRule:
+      "Un médicament doit voyager étiqueté au nom de la personne qui le porte, avec son ordonnance. Ce carnet sert à savoir qui sera sur place : écrivez-vous pour vous organiser, jamais pour confier un colis à un inconnu.",
     pendingRequestsTitle: "Demandes en attente à {wilaya}",
     noPendingRequests: "Aucune demande active dans cette wilaya pour le moment.",
     pendingRequestsCount_one: "{n} personne cherche un médicament là où ce trajet arrive.",
@@ -589,6 +605,14 @@ const ar: typeof fr = {
     noMessagesYet: "لا توجد رسائل حاليًا — ابدأ المحادثة.",
     errorRespondFailed: "فشل الإجراء. يرجى المحاولة مرة أخرى.",
     errorSendFailed: "فشل إرسال الرسالة. يرجى المحاولة مرة أخرى.",
+    contactTraveller: "راسل هذا المسافر",
+    needAccountTrip: "سجّل الدخول لمراسلة هذا المسافر",
+    pendingNoteTrip: "تم إرسال طلبك — يجب على المسافر قبوله لفتح المحادثة.",
+    declinedNoteTrip: "رفض المسافر طلبك.",
+    acceptedNoteTrip: "تم قبول الطلب — المحادثة مفتوحة أدناه.",
+    tripNotActive: "لم تعد هذه الرحلة معلنة — لا يمكن مراسلة المسافر.",
+    proposalFromTrip: "{name} يرغب في مراسلتك بخصوص هذه الرحلة.",
+    noProposalsYetTrip: "لا توجد طلبات حاليًا — ستظهر هنا فور مراسلتك من أحدهم.",
   },
   categories: {
     medicament: "دواء",
@@ -777,6 +801,10 @@ const ar: typeof fr = {
     interestAccepted: "تم قبول اقتراحك بخصوص « {medication} » — المراسلة مفتوحة الآن.",
     interestDeclined: "تم رفض اقتراحك بخصوص « {medication} ».",
     newMessage: "{name} أرسل(ت) لك رسالة بخصوص « {medication} ».",
+    interestTrip: "{name} يرغب في مراسلتك بخصوص رحلتك إلى {wilaya}.",
+    interestAcceptedTrip: "تم قبول طلب التواصل بخصوص الرحلة إلى {wilaya} — المراسلة مفتوحة الآن.",
+    interestDeclinedTrip: "تم رفض طلب التواصل بخصوص الرحلة إلى {wilaya}.",
+    newMessageTrip: "{name} أرسل(ت) لك رسالة بخصوص الرحلة إلى {wilaya}.",
   },
   voyages: {
     title: "دفتر الأسفار",
@@ -800,8 +828,9 @@ const ar: typeof fr = {
     arrivesInDays: "خلال {n} يومًا",
     arrivalWilaya: "الوصول إلى:",
     availabilityTitle: "التوفر المُعلن",
-    messagingNotReady:
-      "المراسلة المباشرة غير مفعّلة بعد. يجب أن يُنقل الدواء باسم الشخص الذي يحمله ومعه وصفته الطبية: هذه الرحلة تفيد في معرفة من سيكون متواجدًا هناك، وليس لتكليف أحد بنقل طرد.",
+    contactTitle: "التواصل",
+    handoverRule:
+      "يجب أن يُنقل الدواء باسم الشخص الذي يحمله ومعه وصفته الطبية. هذا الدفتر يفيد في معرفة من سيكون متواجدًا هناك: تراسلا للتنظيم، لا لتكليف شخص مجهول بحمل طرد.",
     pendingRequestsTitle: "طلبات في انتظار الاستجابة في {wilaya}",
     noPendingRequests: "لا يوجد طلب نشط في هذه الولاية حاليًا.",
     pendingRequestsCount_one: "شخص واحد يبحث عن دواء في المكان الذي تصل إليه هذه الرحلة.",

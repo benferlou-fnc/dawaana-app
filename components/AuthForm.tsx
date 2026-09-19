@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { ArrowRightIcon, ShieldIcon } from "./icons";
@@ -28,7 +27,6 @@ export default function AuthForm({
   locale: Locale;
 }) {
   const dict = getDictionary(locale);
-  const router = useRouter();
   const isSignup = mode === "inscription";
 
   const [firstName, setFirstName] = useState("");
@@ -107,8 +105,9 @@ export default function AuthForm({
       }
     }
 
-    router.refresh();
-    router.push("/mon-compte");
+    // Même raison qu'à la déconnexion : la mise en page mise en cache par
+    // Next garderait « Se connecter » dans l'en-tête. On recharge vraiment.
+    window.location.assign("/mon-compte");
   }
 
   async function handleGoogle() {

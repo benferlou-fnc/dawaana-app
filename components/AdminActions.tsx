@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { photosDeLAnnonce, supprimerPhotos } from "@/lib/supabase/photos";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 
@@ -42,13 +43,31 @@ export function ModerateActions({
   async function remove() {
     setBusy(true);
     setErrorMsg(null);
-    const { error } = await createClient().from(table).delete().eq("id", id);
+    const supabase = createClient();
+
+    // Chemins relevés avant l'effacement de la ligne : après, ils sont perdus
+    // et les fichiers resteraient dans un bucket public.
+    const photos =
+      table === "listings"
+        ? photosDeLAnnonce(
+            (
+              await supabase
+                .from("listings")
+                .select("photo_urls, expiration_photo_url")
+                .eq("id", id)
+                .maybeSingle()
+            ).data
+          )
+        : [];
+
+    const { error } = await supabase.from(table).delete().eq("id", id);
     setBusy(false);
     if (error) {
       setErrorMsg(dict.admin.deleteRefused);
       console.error(error);
       return;
     }
+    await supprimerPhotos(supabase, photos);
     setConfirming(false);
     router.refresh();
   }

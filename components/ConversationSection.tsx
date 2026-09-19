@@ -143,7 +143,8 @@ function MessageThread({
  * sur la fiche annonce, sans page dédiée.
  */
 export default function ConversationSection({
-  listingId,
+  kind = "listing",
+  cibleId,
   listingType,
   locale,
   loggedIn,
@@ -153,12 +154,16 @@ export default function ConversationSection({
   conversations,
   initialMessages,
 }: {
-  listingId: string;
-  listingType: ListingType;
+  /** Une annonce ou un trajet du carnet de voyages. Le mécanisme est le
+   * même des deux côtés ; seuls la fonction appelée et les mots changent. */
+  kind?: "listing" | "trip";
+  cibleId: string;
+  /** Uniquement pour une annonce : change le libellé du bouton. */
+  listingType?: ListingType;
   locale: Locale;
   loggedIn: boolean;
   isOwner: boolean;
-  /** L'annonce est-elle toujours active ? Une conversation déjà en cours
+  /** La publication est-elle toujours active ? Une conversation déjà en cours
    * (pending/acceptée/déclinée) reste consultable même si non — seul le
    * bouton pour se proposer une première fois est masqué. */
   isActive: boolean;
@@ -167,11 +172,32 @@ export default function ConversationSection({
   initialMessages: Record<string, ChatMessage[]>;
 }) {
   const dict = getDictionary(locale);
+  const isTrip = kind === "trip";
   const router = useRouter();
   const [interestBusy, setInterestBusy] = useState(false);
   const [interestError, setInterestError] = useState(false);
   const [respondingId, setRespondingId] = useState<string | null>(null);
   const [respondErrorId, setRespondErrorId] = useState<string | null>(null);
+
+  // Une proposition en attente est tranchée par l'autre participant, sur son
+  // écran à lui : sans ce rappel, celui qui attend restait sur « en attente »
+  // jusqu'à ce qu'il pense à recharger la page. On ne sonde que tant qu'il y
+  // a réellement quelque chose en attente, et on laisse le serveur refaire le
+  // rendu dès que le statut bouge.
+  const enAttente = conversations
+    .filter((c) => c.status === "pending")
+    .map((c) => c.id)
+    .join(",");
+
+  useEffect(() => {
+    if (!enAttente) return;
+    const ids = enAttente.split(",");
+    const timer = setInterval(async () => {
+      const { data } = await createClient().from("conversations").select("id, status").in("id", ids);
+      if (data?.some((c) => c.status !== "pending")) router.refresh();
+    }, 15_000);
+    return () => clearInterval(timer);
+  }, [enAttente, router]);
 
   if (!loggedIn) {
     return (
@@ -179,7 +205,7 @@ export default function ConversationSection({
         href="/connexion"
         className="h-12 rounded-xl border border-brand-border font-display font-semibold flex items-center justify-center text-[13.5px] hover:bg-brand-bg transition"
       >
-        {dict.messagerie.needAccount}
+        {isTrip ? dict.messagerie.needAccountTrip : dict.messagerie.needAccount}
       </Link>
     );
   }
@@ -202,7 +228,9 @@ export default function ConversationSection({
   async function expressInterest() {
     setInterestBusy(true);
     setInterestError(false);
-    const { error } = await createClient().rpc("express_interest", { target_listing_id: listingId });
+    const { error } = isTrip
+      ? await createClient().rpc("express_interest_trip", { target_trip_id: cibleId })
+      : await createClient().rpc("express_interest", { target_listing_id: cibleId });
     setInterestBusy(false);
     if (error) {
       setInterestError(true);
@@ -214,7 +242,9 @@ export default function ConversationSection({
   if (isOwner) {
     if (conversations.length === 0) {
       return (
-        <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">{dict.messagerie.noProposalsYet}</p>
+        <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">
+          {isTrip ? dict.messagerie.noProposalsYetTrip : dict.messagerie.noProposalsYet}
+        </p>
       );
     }
     return (
@@ -223,7 +253,11 @@ export default function ConversationSection({
           <div key={c.id} className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-[13px]">
               <MessageCircleIcon size={15} className="text-brand-ink-faint flex-none" />
-              <span>{t(dict.messagerie.proposalFrom, { name: c.other_first_name || dict.notifications.someone })}</span>
+              <span>
+                {t(isTrip ? dict.messagerie.proposalFromTrip : dict.messagerie.proposalFrom, {
+                  name: c.other_first_name || dict.notifications.someone,
+                })}
+              </span>
             </div>
             {c.status === "pending" && (
               <div className="flex flex-col gap-1.5">
@@ -273,7 +307,7 @@ export default function ConversationSection({
     if (!isActive) {
       return (
         <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">
-          {dict.messagerie.listingNotActive}
+          {isTrip ? dict.messagerie.tripNotActive : dict.messagerie.listingNotActive}
         </p>
       );
     }
@@ -287,6 +321,8 @@ export default function ConversationSection({
         >
           {interestBusy
             ? dict.messagerie.sending
+            : isTrip
+            ? dict.messagerie.contactTraveller
             : listingType === "don"
             ? dict.messagerie.interestedDon
             : dict.messagerie.canHelpRequest}
@@ -299,16 +335,16 @@ export default function ConversationSection({
   }
 
   if (mine.status === "pending") {
-    return <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">{dict.messagerie.pendingNote}</p>;
+    return <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">{isTrip ? dict.messagerie.pendingNoteTrip : dict.messagerie.pendingNote}</p>;
   }
 
   if (mine.status === "declined") {
-    return <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">{dict.messagerie.declinedNote}</p>;
+    return <p className="text-[13px] text-brand-ink-faint text-center px-2 py-3">{isTrip ? dict.messagerie.declinedNoteTrip : dict.messagerie.declinedNote}</p>;
   }
 
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-[12px] text-brand-green-dark font-semibold">{dict.messagerie.acceptedNote}</p>
+      <p className="text-[12px] text-brand-green-dark font-semibold">{isTrip ? dict.messagerie.acceptedNoteTrip : dict.messagerie.acceptedNote}</p>
       {meId && (
         <MessageThread conversationId={mine.id} meId={meId} locale={locale} initialMessages={initialMessages[mine.id] ?? []} />
       )}

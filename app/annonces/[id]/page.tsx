@@ -4,7 +4,6 @@ import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import {
   displayName,
-  donorLocation,
   isVerified,
   LISTING_SELECT,
   type ChatMessage,
@@ -18,7 +17,7 @@ import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
 import { MapPinIcon, ShieldIcon, GlobeIcon, TagIcon, PencilIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
-import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
+import { wilayaLabel, placeLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 
@@ -61,6 +60,7 @@ async function getConversationData(listingId: string, meId: string | null) {
   const conversations: Conversation[] = rows.map((c) => ({
     id: c.id,
     listing_id: c.listing_id,
+    trip_id: c.trip_id,
     owner_id: c.owner_id,
     requester_id: c.requester_id,
     status: c.status,
@@ -97,7 +97,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
   const { conversations, messages } = await getConversationData(listing.id, me?.id ?? null);
 
   const isDon = listing.type === "don";
-  const location = donorLocation(listing);
+  const location = placeLabel(listing, locale);
   const hasPhotos = isDon && (listing.photo_urls?.length > 0 || listing.expiration_photo_url);
 
   return (
@@ -191,7 +191,7 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
                   <div className="text-xs text-brand-ink-faint mb-1">{dict.annonceDetail.donorLocation}</div>
                   <div className="text-sm font-semibold flex items-center gap-1.5">
                     <GlobeIcon />
-                    {countryLabel(location, locale)}
+                    {location}
                   </div>
                 </div>
               )}
@@ -276,7 +276,8 @@ export default async function ListingDetailPage({ params }: { params: { id: stri
               <p className="text-[13.5px] text-brand-ink-soft leading-relaxed">{dict.annonceDetail.step3}</p>
             </div>
             <ConversationSection
-              listingId={listing.id}
+              kind="listing"
+              cibleId={listing.id}
               listingType={listing.type}
               locale={locale}
               loggedIn={Boolean(me)}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { photosDeLAnnonce, supprimerPhotos } from "@/lib/supabase/photos";
 import { t } from "@/lib/i18n/dictionary";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
@@ -96,10 +97,22 @@ export function DeleteEverything({ count, locale }: { count: number; locale: Loc
       return;
     }
 
+    // Les photos vivent dans un bucket public : sans ce ménage, elles
+    // restaient accessibles par leur URL alors que l'annonce n'existait plus.
+    // On relève les chemins AVANT d'effacer les lignes, sinon ils sont perdus.
+    const { data: aPhotos } = await supabase
+      .from("listings")
+      .select("photo_urls, expiration_photo_url")
+      .eq("user_id", user.id);
+
     const [a, b] = await Promise.all([
       supabase.from("listings").delete().eq("user_id", user.id),
       supabase.from("trips").delete().eq("user_id", user.id),
     ]);
+
+    if (!a.error) {
+      await supprimerPhotos(supabase, (aPhotos ?? []).flatMap(photosDeLAnnonce));
+    }
     setBusy(false);
 
     if (a.error || b.error) {

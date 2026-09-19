@@ -171,11 +171,16 @@ export interface AppNotification {
   user_id: string;
   type: NotificationType;
   listing_id: string | null;
+  /** Renseigné à la place de listing_id quand la notification porte sur un trajet. */
+  trip_id: string | null;
   data: {
     medication_name?: string;
     listing_type?: ListingType;
     helper_first_name?: string;
     new_status?: ListingStatus;
+    /** Wilaya d'arrivée et pays de départ, figés au moment de l'événement. */
+    trip_to?: string;
+    trip_from?: string;
   };
   read_at: string | null;
   created_at: string;
@@ -183,12 +188,14 @@ export interface AppNotification {
 
 export type ConversationStatus = "pending" | "accepted" | "declined";
 
-/** Conversation entre l'auteur d'une annonce et une personne intéressée —
- * une par (annonce, personne), l'auteur doit l'accepter avant que le fil de
- * discussion s'ouvre. */
+/** Conversation entre l'auteur d'une publication et une personne intéressée —
+ * une par (publication, personne), l'auteur doit l'accepter avant que le fil
+ * de discussion s'ouvre. Elle porte soit sur une annonce, soit sur un trajet
+ * du carnet de voyages : exactement l'un des deux est renseigné. */
 export interface Conversation {
   id: string;
-  listing_id: string;
+  listing_id: string | null;
+  trip_id: string | null;
   owner_id: string;
   requester_id: string;
   status: ConversationStatus;

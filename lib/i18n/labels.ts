@@ -107,3 +107,18 @@ export function countryLabel(country: string, locale: Locale): string {
   }
   return country;
 }
+
+/**
+ * « Lyon, France » / « ليون، فرنسا ». À utiliser partout où l'on affichait
+ * countryLabel(donorLocation(...)) : donorLocation renvoie déjà « Ville, Pays »
+ * collés, que countryLabel ne pouvait plus reconnaître — le pays restait donc
+ * en français dès qu'une ville était renseignée.
+ */
+export function placeLabel(
+  item: { donor_city?: string | null; donor_country?: string | null },
+  locale: Locale
+): string | null {
+  const city = item.donor_city?.trim() || null;
+  const country = item.donor_country ? countryLabel(item.donor_country, locale) : null;
+  return [city, country].filter(Boolean).join(locale === "ar" ? "، " : ", ") || null;
+}

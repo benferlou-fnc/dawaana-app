@@ -13,6 +13,12 @@ import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary } from "@/lib/i18n/dictionary";
 import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
 
+/** Aujourd'hui au format AAAA-MM-JJ, heure locale du voyageur. */
+function todayIso() {
+  const d = new Date();
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 export default function PublierVoyageForm({ locale }: { locale: Locale }) {
   const dict = getDictionary(locale);
   const router = useRouter();
@@ -202,6 +208,7 @@ export default function PublierVoyageForm({ locale }: { locale: Locale }) {
             <label className="block text-[13.5px] font-semibold mb-2">{dict.voyagesPublier.arrivalDate}</label>
             <input
               type="date"
+              min={todayIso()}
               value={travelDate}
               onChange={(e) => setTravelDate(e.target.value)}
               className={field}

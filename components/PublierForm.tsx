@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { photosDeLAnnonce, supprimerPhotos } from "@/lib/supabase/photos";
 import type { Profile, Listing, ListingStatus } from "@/lib/types";
 import { WILAYAS } from "@/lib/wilayas";
 import { DIASPORA_COUNTRIES } from "@/lib/countries";
@@ -104,7 +105,9 @@ export default function PublierForm({
   const router = useRouter();
   const isEdit = mode === "edit" && Boolean(listing);
 
-  const [type] = useState<ListingType>(listing?.type ?? "recherche");
+  // Le choix « je cherche » / « je donne » : sans son setter, les deux
+  // onglets restaient figés et un don était impossible à publier.
+  const [type, setType] = useState<ListingType>(listing?.type ?? "recherche");
   const [profile, setProfile] = useState<Profile | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [category, setCategory] = useState<ListingCategory>(listing?.category ?? "medicament");
@@ -145,6 +148,17 @@ export default function PublierForm({
     [expirationPhoto]
   );
   const totalProductPhotos = existingPhotoUrls.length + productPhotos.length;
+
+  // Chaque aperçu crée une URL blob: que le navigateur garde en mémoire
+  // jusqu'à ce qu'on la libère explicitement.
+  useEffect(() => {
+    return () => productPhotoPreviews.forEach(URL.revokeObjectURL);
+  }, [productPhotoPreviews]);
+  useEffect(() => {
+    return () => {
+      if (expirationPhotoPreview) URL.revokeObjectURL(expirationPhotoPreview);
+    };
+  }, [expirationPhotoPreview]);
 
   function handleProductPhotosChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
@@ -274,6 +288,14 @@ export default function PublierForm({
         return;
       }
 
+      // Une photo décrochée du formulaire doit aussi quitter le bucket :
+      // l'annonce ne la montre plus, mais son URL restait ouverte à tous.
+      const gardees = new Set([...finalPhotoUrls, finalExpirationPhotoUrl ?? ""]);
+      await supprimerPhotos(
+        supabase,
+        photosDeLAnnonce(listing).filter((u) => !gardees.has(u))
+      );
+
       router.refresh();
       router.push(`/annonces/${listing.id}`);
       return;
@@ -366,9 +388,10 @@ export default function PublierForm({
         <div className="flex gap-2.5 p-1.5 bg-brand-surface border-[1.5px] border-brand-border rounded-2xl mb-7">
           <button
             type="button"
-            disabled
+            onClick={() => setType("recherche")}
+            aria-pressed={type === "recherche"}
             className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
-              type === "recherche" ? "bg-brand-coral text-white" : "text-brand-ink-soft"
+              type === "recherche" ? "bg-brand-coral text-white" : "text-brand-ink-soft hover:bg-brand-bg"
             }`}
           >
             <SearchIcon size={17} />
@@ -376,9 +399,10 @@ export default function PublierForm({
           </button>
           <button
             type="button"
-            disabled
+            onClick={() => setType("don")}
+            aria-pressed={isDon}
             className={`flex-1 h-[52px] rounded-xl flex items-center justify-center gap-2 font-display font-bold text-sm transition ${
-              isDon ? "bg-brand-green-dark text-white" : "text-brand-ink-soft"
+              isDon ? "bg-brand-green-dark text-white" : "text-brand-ink-soft hover:bg-brand-bg"
             }`}
           >
             <GiftIcon size={17} />

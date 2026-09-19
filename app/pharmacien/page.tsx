@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient, getCurrentProfile } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { displayName, donorLocation, isVerified, type Listing } from "@/lib/types";
+import { displayName, isVerified, type Listing } from "@/lib/types";
 import { formatDate, relativeTime } from "@/lib/relativeTime";
 import PharmacistActions from "@/components/PharmacistActions";
 import PushNotificationToggle from "@/components/PushNotificationToggle";
@@ -11,7 +11,7 @@ import MedicationVerifiedBadge from "@/components/MedicationVerifiedBadge";
 import { PillIcon, GlobeIcon, ShieldCheckIcon } from "@/components/icons";
 import { getLocale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
-import { wilayaLabel, countryLabel } from "@/lib/i18n/labels";
+import { wilayaLabel, placeLabel } from "@/lib/i18n/labels";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Tableau de bord pharmacien — Dawaana", robots: { index: false } };
@@ -113,7 +113,7 @@ export default async function PharmacienPage() {
         ) : (
           <div className="flex flex-col gap-2.5">
             {dons.map((l) => {
-              const location = donorLocation(l);
+              const location = placeLabel(l, locale);
               return (
                 <div
                   key={l.id}
@@ -145,7 +145,7 @@ export default async function PharmacienPage() {
                             <span>·</span>
                             <span className="inline-flex items-center gap-1">
                               <GlobeIcon size={12} />
-                              {countryLabel(location, locale)}
+                              {location}
                             </span>
                           </>
                         )}

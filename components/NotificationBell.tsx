@@ -8,6 +8,7 @@ import { relativeTime } from "@/lib/relativeTime";
 import { BellIcon, VolumeIcon, VolumeOffIcon } from "./icons";
 import type { Locale } from "@/lib/i18n/locale";
 import { getDictionary, t } from "@/lib/i18n/dictionary";
+import { wilayaLabel } from "@/lib/i18n/labels";
 import {
   ensureAudioUnlocked,
   isNotificationSoundMuted,
@@ -17,13 +18,27 @@ import {
 
 const POLL_MS = 45_000;
 
-function notificationText(n: AppNotification, dict: ReturnType<typeof getDictionary>) {
+function notificationText(
+  n: AppNotification,
+  dict: ReturnType<typeof getDictionary>,
+  locale: Locale
+) {
+  // Une notification porte soit sur une annonce, soit sur un trajet : la
+  // phrase n'est pas la même, et la wilaya doit suivre la langue choisie.
+  const trajet = Boolean(n.trip_id);
+  const wilaya = wilayaLabel(n.data.trip_to || "", locale);
+
   switch (n.type) {
     case "interest":
-      return t(dict.notifications.interest, {
-        name: n.data.helper_first_name || dict.notifications.someone,
-        medication: n.data.medication_name || "",
-      });
+      return trajet
+        ? t(dict.notifications.interestTrip, {
+            name: n.data.helper_first_name || dict.notifications.someone,
+            wilaya,
+          })
+        : t(dict.notifications.interest, {
+            name: n.data.helper_first_name || dict.notifications.someone,
+            medication: n.data.medication_name || "",
+          });
     case "identity_verified":
       return dict.notifications.identityVerified;
     case "medication_verified":
@@ -33,14 +48,23 @@ function notificationText(n: AppNotification, dict: ReturnType<typeof getDiction
         ? t(dict.notifications.listingRestored, { medication: n.data.medication_name || "" })
         : t(dict.notifications.listingRemoved, { medication: n.data.medication_name || "" });
     case "interest_accepted":
-      return t(dict.notifications.interestAccepted, { medication: n.data.medication_name || "" });
+      return trajet
+        ? t(dict.notifications.interestAcceptedTrip, { wilaya })
+        : t(dict.notifications.interestAccepted, { medication: n.data.medication_name || "" });
     case "interest_declined":
-      return t(dict.notifications.interestDeclined, { medication: n.data.medication_name || "" });
+      return trajet
+        ? t(dict.notifications.interestDeclinedTrip, { wilaya })
+        : t(dict.notifications.interestDeclined, { medication: n.data.medication_name || "" });
     case "message":
-      return t(dict.notifications.newMessage, {
-        name: n.data.helper_first_name || dict.notifications.someone,
-        medication: n.data.medication_name || "",
-      });
+      return trajet
+        ? t(dict.notifications.newMessageTrip, {
+            name: n.data.helper_first_name || dict.notifications.someone,
+            wilaya,
+          })
+        : t(dict.notifications.newMessage, {
+            name: n.data.helper_first_name || dict.notifications.someone,
+            medication: n.data.medication_name || "",
+          });
     default:
       return "";
   }
@@ -134,6 +158,7 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
     }
     setOpen(false);
     if (n.listing_id) router.push(`/annonces/${n.listing_id}`);
+    else if (n.trip_id) router.push(`/voyages/${n.trip_id}`);
   }
 
   async function markAllRead() {
@@ -212,7 +237,7 @@ export default function NotificationBell({ locale }: { locale: Locale }) {
                         }`}
                       />
                       <span className="flex flex-col gap-0.5">
-                        <span className="text-[13px] text-brand-ink leading-snug">{notificationText(n, dict)}</span>
+                        <span className="text-[13px] text-brand-ink leading-snug">{notificationText(n, dict, locale)}</span>
                         <span className="text-[11px] text-brand-ink-faint">{relativeTime(n.created_at, locale)}</span>
                       </span>
                     </button>
